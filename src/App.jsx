@@ -3,7 +3,11 @@ import AuthenticatedLayout from './components/AuthenticatedLayout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AppHomePage from './pages/AppHomePage.jsx'
 import AuthCallbackPage from './pages/AuthCallbackPage.jsx'
+import ClientDetailPage from './pages/ClientDetailPage.jsx'
+import ClientFormPage from './pages/ClientFormPage.jsx'
+import ClientsListPage from './pages/ClientsListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import TagsPage from './pages/TagsPage.jsx'
 
 function App() {
   return (
@@ -14,6 +18,11 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AuthenticatedLayout />}>
           <Route path="/app" element={<AppHomePage />} />
+          <Route path="/app/clients" element={<ClientsListPage />} />
+          <Route path="/app/clients/new" element={<ClientFormPage mode="create" />} />
+          <Route path="/app/clients/:id" element={<ClientDetailPage />} />
+          <Route path="/app/clients/:id/edit" element={<ClientFormPage mode="edit" />} />
+          <Route path="/app/tags" element={<TagsPage />} />
         </Route>
       </Route>
 

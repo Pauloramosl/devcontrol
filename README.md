@@ -1,59 +1,87 @@
-# DevControl - Fase 0 (Fundacao)
+# DevControl - Fase 1 (Clientes + Tags)
 
-Implementacao da fase inicial com React + Vite + Tailwind + React Router + Supabase Auth.
+Implementacao da Fase 1 do PRD modular:
+- autenticacao (fase anterior)
+- clientes + tags + relacao N:N com RLS por owner
 
 ## Requisitos
 
 - Node.js 20+
 - npm 10+
 
-## Como rodar
+## Variaveis de ambiente
 
-1. Instale dependencias:
-
-```bash
-npm install
-```
-
-2. Configure o ambiente em `.env.local`:
+Crie/edite `.env.local`:
 
 ```bash
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-3. Rode em desenvolvimento:
+Nao use `service_role` no frontend.
+
+## Rodar o app
 
 ```bash
+npm install
 npm run dev
 ```
 
-4. Build de producao:
+Build:
 
 ```bash
 npm run build
 ```
 
-## Fluxo de autenticacao
+## Supabase CLI (migrations obrigatorias)
 
-- Rota publica de login: `/login`
-- Callback OAuth: `/auth/callback`
-- Rota privada: `/app`
-- Logout no header da area autenticada
-- Sessao persiste entre refreshs via Supabase Auth
+1. Inicializar projeto Supabase local (se ainda nao existir pasta `supabase/`):
 
-## Como testar login Google
+```bash
+npx supabase init
+```
 
-1. No Supabase Dashboard, confirme que o provider Google esta habilitado.
-2. Em `Authentication > URL Configuration`, garanta que:
-- Site URL: `http://localhost:5173`
-- Redirect URL adicional: `http://localhost:5173/auth/callback`
-3. Rode `npm run dev` e abra `http://localhost:5173/login`.
-4. Clique em `Entrar com Google`.
-5. Ao voltar do OAuth, voce deve cair em `/app`.
+2. Login na CLI (se necessario):
 
-## Observacoes da fase
+```bash
+npx supabase login
+```
 
-- `.env.local` esta ignorado no `.gitignore`.
-- Nao ha tabelas de negocio nem CRUD nesta fase.
-- TODO: dark/light mode fica para fase futura.
+3. Linkar projeto remoto (se necessario):
+
+```bash
+npx supabase link --project-ref <PROJECT_REF>
+```
+
+4. Aplicar migrations no banco remoto:
+
+```bash
+npx supabase db push
+```
+
+## Estrutura desta fase
+
+- Migration em `supabase/migrations/` para:
+  - `clients`
+  - `client_tags`
+  - `client_tag_relations`
+  - RLS + policies por `owner_id`
+  - indices e trigger de `updated_at` em `clients`
+
+- Rotas frontend:
+  - `/app/clients`
+  - `/app/clients/new`
+  - `/app/clients/:id`
+  - `/app/clients/:id/edit`
+  - `/app/tags`
+
+## Teste manual rapido
+
+1. Faça login.
+2. Acesse `/app/tags` e crie algumas tags.
+3. Acesse `/app/clients/new` e crie um cliente.
+4. Abra o detalhe do cliente (`/app/clients/:id`) e associe/desassocie tags.
+5. Volte para `/app/clients` e teste:
+  - busca por nome/email
+  - filtro por status
+  - filtro por tag

@@ -1,6 +1,11 @@
 import { useState } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+
+const navClassName = ({ isActive }) =>
+  `rounded-md px-3 py-2 text-sm font-medium transition ${
+    isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+  }`
 
 function AuthenticatedLayout() {
   const navigate = useNavigate()
@@ -28,9 +33,19 @@ function AuthenticatedLayout() {
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4">
-          <div>
+          <div className="space-y-2">
             <h1 className="text-lg font-semibold text-slate-900">DevControl</h1>
-            <p className="text-xs text-slate-500">Foundation phase</p>
+            <nav className="flex flex-wrap gap-1">
+              <NavLink to="/app" end className={navClassName}>
+                Home
+              </NavLink>
+              <NavLink to="/app/clients" className={navClassName}>
+                Clientes
+              </NavLink>
+              <NavLink to="/app/tags" className={navClassName}>
+                Tags
+              </NavLink>
+            </nav>
           </div>
 
           <div className="flex items-center gap-3">
