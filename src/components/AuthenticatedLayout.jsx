@@ -42,6 +42,9 @@ function AuthenticatedLayout() {
               <NavLink to="/app/clients" className={navClassName}>
                 Clientes
               </NavLink>
+              <NavLink to="/app/projects" className={navClassName}>
+                Projetos
+              </NavLink>
               <NavLink to="/app/tags" className={navClassName}>
                 Tags
               </NavLink>

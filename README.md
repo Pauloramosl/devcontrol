@@ -139,3 +139,56 @@ Migration em `supabase/migrations/` para:
 
 Nao sobrescrever o README inteiro.
 Adicionar sempre uma nova secao ao final para manter o historico evolutivo.
+
+## Fase 2 — Projetos
+
+Modulo de projetos vinculado a clientes existentes, com isolamento por `owner_id` via RLS.
+
+### Como aplicar migrations
+
+```bash
+npx supabase db push
+```
+
+### Rotas criadas
+
+- `/app/projects`
+- `/app/projects/new`
+- `/app/projects/:id`
+- `/app/projects/:id/edit`
+
+### Estrutura da tabela
+
+Tabela `projects`:
+
+- `id` uuid primary key default `gen_random_uuid()`
+- `owner_id` uuid not null references `auth.users(id)`
+- `client_id` uuid not null references `clients(id)` on delete cascade
+- `service_type` text
+- `budget_value` numeric
+- `scope_text` text
+- `proposal_text` text
+- `start_date` date
+- `due_date` date
+- `status` text not null default `'active'`
+- `created_at` timestamptz default `now()`
+- `updated_at` timestamptz default `now()`
+
+Com suporte a:
+
+- RLS habilitado
+- Policy `FOR ALL` com:
+  - `USING (owner_id = auth.uid())`
+  - `WITH CHECK (owner_id = auth.uid())`
+- Indices:
+  - `projects_owner_client_idx (owner_id, client_id)`
+  - `projects_owner_status_idx (owner_id, status)`
+- Trigger `updated_at` em updates
+
+### Como testar manualmente
+
+1. Rode `npx supabase db push`.
+2. Rode `npm run dev`.
+3. Acesse `/app/projects/new`, selecione um cliente e crie um projeto.
+4. Acesse `/app/projects` e teste filtro por status e filtro por cliente.
+5. Abra `/app/projects/:id`, edite em `/app/projects/:id/edit` e teste exclusao no detalhe.

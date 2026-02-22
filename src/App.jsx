@@ -7,6 +7,9 @@ import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ProjectDetailPage from './pages/ProjectDetailPage.jsx'
+import ProjectFormPage from './pages/ProjectFormPage.jsx'
+import ProjectsListPage from './pages/ProjectsListPage.jsx'
 import TagsPage from './pages/TagsPage.jsx'
 
 function App() {
@@ -23,6 +26,10 @@ function App() {
           <Route path="/app/clients/:id" element={<ClientDetailPage />} />
           <Route path="/app/clients/:id/edit" element={<ClientFormPage mode="edit" />} />
           <Route path="/app/tags" element={<TagsPage />} />
+          <Route path="/app/projects" element={<ProjectsListPage />} />
+          <Route path="/app/projects/new" element={<ProjectFormPage mode="create" />} />
+          <Route path="/app/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/app/projects/:id/edit" element={<ProjectFormPage mode="edit" />} />
         </Route>
       </Route>
 
