@@ -269,3 +269,19 @@ export async function setClientTags({ ownerId, clientId, tagIds }) {
     throw insertError
   }
 }
+
+export async function deleteClient({ ownerId, clientId }) {
+  if (!ownerId || !clientId) {
+    throw new Error('ownerId and clientId are required to delete a client.')
+  }
+
+  const { error } = await supabase
+    .from('clients')
+    .delete()
+    .eq('owner_id', ownerId)
+    .eq('id', clientId)
+
+  if (error) {
+    throw error
+  }
+}

@@ -122,6 +122,7 @@ Migration em `supabase/migrations/` para:
 - Filtro por status.
 - Filtro por tag.
 - Associacao/desassociacao de tags por cliente.
+- Exclusão de cliente implementada (com cascade automático para projetos).
 - Estados de loading/empty/error nas telas principais.
 
 ### Teste manual rapido da fase

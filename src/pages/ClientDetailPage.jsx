@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getClientById, setClientTags } from '../lib/clients.js'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { deleteClient, getClientById, setClientTags } from '../lib/clients.js'
 import { listTags } from '../lib/tags.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 function ClientDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user } = useAuth()
 
   const ownerId = user?.id
@@ -15,9 +16,11 @@ function ClientDetailPage() {
   const [selectedTagIds, setSelectedTagIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingTags, setSavingTags] = useState(false)
+  const [deletingClient, setDeletingClient] = useState(false)
   const [error, setError] = useState('')
   const [tagError, setTagError] = useState('')
   const [tagSuccess, setTagSuccess] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     if (!ownerId || !id) return
@@ -94,6 +97,24 @@ function ClientDetailPage() {
       setTagError(saveError.message)
     } finally {
       setSavingTags(false)
+    }
+  }
+
+  const handleDeleteClient = async () => {
+    if (!ownerId || !id) return
+
+    const confirmed = window.confirm('Excluir cliente?')
+    if (!confirmed) return
+
+    setDeleteError('')
+    setDeletingClient(true)
+
+    try {
+      await deleteClient({ ownerId, clientId: id })
+      navigate('/app/clients', { replace: true })
+    } catch (deleteClientError) {
+      setDeleteError(deleteClientError.message)
+      setDeletingClient(false)
     }
   }
 
@@ -227,6 +248,28 @@ function ClientDetailPage() {
         {tagSuccess ? (
           <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
             {tagSuccess}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <h3 className="text-lg font-semibold text-slate-900">Excluir Cliente</h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Esta acao remove o cliente e dados relacionados por cascade.
+        </p>
+
+        <button
+          type="button"
+          onClick={handleDeleteClient}
+          disabled={deletingClient}
+          className="mt-4 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+        >
+          {deletingClient ? 'Excluindo cliente...' : 'Excluir cliente'}
+        </button>
+
+        {deleteError ? (
+          <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {deleteError}
           </p>
         ) : null}
       </div>
