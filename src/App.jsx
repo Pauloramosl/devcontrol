@@ -9,6 +9,7 @@ import ClientsListPage from './pages/ClientsListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx'
 import ProjectFormPage from './pages/ProjectFormPage.jsx'
+import ProjectKanbanPage from './pages/ProjectKanbanPage.jsx'
 import ProjectsListPage from './pages/ProjectsListPage.jsx'
 import TagsPage from './pages/TagsPage.jsx'
 
@@ -30,6 +31,7 @@ function App() {
           <Route path="/app/projects/new" element={<ProjectFormPage mode="create" />} />
           <Route path="/app/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/app/projects/:id/edit" element={<ProjectFormPage mode="edit" />} />
+          <Route path="/app/projects/:id/kanban" element={<ProjectKanbanPage />} />
         </Route>
       </Route>
 

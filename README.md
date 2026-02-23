@@ -193,3 +193,57 @@ Com suporte a:
 3. Acesse `/app/projects/new`, selecione um cliente e crie um projeto.
 4. Acesse `/app/projects` e teste filtro por status e filtro por cliente.
 5. Abra `/app/projects/:id`, edite em `/app/projects/:id/edit` e teste exclusao no detalhe.
+
+## Fase 3 — Kanban por Projeto
+
+Kanban por projeto com colunas customizaveis, tasks por coluna, drag-and-drop persistido e logs de atividade.
+
+### Tabelas criadas
+
+- `project_columns`
+- `tasks`
+- `task_logs`
+
+Todas com:
+
+- `owner_id`
+- RLS com policy `FOR ALL`:
+  - `USING (owner_id = auth.uid())`
+  - `WITH CHECK (owner_id = auth.uid())`
+
+### Como usar kanban
+
+1. Abra um projeto em `/app/projects/:id`.
+2. Clique em `Kanban` para ir a `/app/projects/:id/kanban`.
+3. Crie colunas e tasks.
+4. Arraste colunas e tasks para reordenar/mover.
+5. Edite task pelo botao `Editar task`.
+6. Veja eventos na area `Atividade`.
+
+### Como aplicar migrations
+
+```bash
+npx supabase db push
+```
+
+### Rotas criadas
+
+- `/app/projects/:id/kanban`
+
+### Como testar drag-and-drop
+
+1. Crie pelo menos 2 colunas e 3 tasks.
+2. Mova tasks para topo, meio e fim da mesma coluna.
+3. Mova task para outra coluna.
+4. Reordene colunas.
+5. Recarregue a pagina e confirme persistencia.
+
+### Observacao sobre rank
+
+Foi implementado LexoRank simplificado em `src/lib/rank.js`:
+
+- `rankBetween(a, b)`
+- `rankAfter(a)`
+- `rankBefore(b)`
+
+Se nao houver espaco entre ranks, o sistema reindexa a coluna e tenta novamente.
