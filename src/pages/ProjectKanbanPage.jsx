@@ -358,6 +358,7 @@ function ProjectKanbanPage() {
       await reorderProjectColumns({
         ownerId,
         projectId,
+        previousOrderedColumnIds: orderedIds,
         orderedColumnIds: reordered,
       })
       await loadKanban()
@@ -448,29 +449,24 @@ function ProjectKanbanPage() {
               key={column.id}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleColumnDrop(event, column.id)}
-              className="w-80 min-w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex min-h-[30rem] flex-col"
+              className="w-80 min-w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col"
             >
-              <header className="flex items-start justify-between gap-2">
+              <header
+                draggable
+                onDragStart={(event) =>
+                  setDragPayload(event, {
+                    type: 'column',
+                    columnId: column.id,
+                  })
+                }
+                className="flex items-start justify-between gap-2 cursor-grab"
+              >
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">{column.name}</h3>
                   <p className="text-xs text-slate-500">Tarefas: {column.tasks.length}</p>
                 </div>
 
                 <div className="flex gap-1">
-                  <button
-                    type="button"
-                    draggable
-                    onDragStart={(event) =>
-                      setDragPayload(event, {
-                        type: 'column',
-                        columnId: column.id,
-                      })
-                    }
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100"
-                    title="Arrastar coluna"
-                  >
-                    Arrastar
-                  </button>
                   <button
                     type="button"
                     onClick={() => handleRenameColumn(column)}
@@ -489,7 +485,7 @@ function ProjectKanbanPage() {
               </header>
 
               <div
-                className="mt-3 flex min-h-40 flex-1 flex-col gap-2 rounded-lg bg-slate-50 p-2"
+                className="mt-3 flex min-h-24 flex-col gap-2 rounded-lg bg-slate-50 p-2"
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => handleTaskDrop(event, column.id, null)}
               >

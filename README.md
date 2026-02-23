@@ -220,6 +220,7 @@ Todas com:
 5. Edite task pelo botao `Editar task`.
 6. Veja eventos na area `Atividade`.
 7. Ajustes: drop zone da coluna inteira, drag move apenas 1 card e edicao via modal unico.
+8. Reorder de colunas restaurado e reorder interno de tasks implementado.
 
 ### Como aplicar migrations
 

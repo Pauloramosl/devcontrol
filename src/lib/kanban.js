@@ -179,14 +179,28 @@ export async function deleteProjectColumn({ ownerId, columnId }) {
   }
 }
 
-export async function reorderProjectColumns({ ownerId, projectId, orderedColumnIds }) {
+export async function reorderProjectColumns({
+  ownerId,
+  projectId,
+  orderedColumnIds,
+  previousOrderedColumnIds = [],
+}) {
   if (!ownerId || !projectId) {
     throw new Error('ownerId and projectId are required to reorder columns.')
   }
 
   const uniqueIds = [...new Set(orderedColumnIds ?? [])]
+  const previousIndexMap = new Map(
+    (previousOrderedColumnIds ?? []).map((columnId, index) => [columnId, index]),
+  )
+
   for (let index = 0; index < uniqueIds.length; index += 1) {
     const columnId = uniqueIds[index]
+    const previousIndex = previousIndexMap.get(columnId)
+    if (previousIndex === index) {
+      continue
+    }
+
     const { error } = await supabase
       .from('project_columns')
       .update({ column_order: index })
