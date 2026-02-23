@@ -219,6 +219,7 @@ Todas com:
 4. Arraste colunas e tasks para reordenar/mover.
 5. Edite task pelo botao `Editar task`.
 6. Veja eventos na area `Atividade`.
+7. Ajustes: drop zone da coluna inteira, drag move apenas 1 card e edicao via modal unico.
 
 ### Como aplicar migrations
 

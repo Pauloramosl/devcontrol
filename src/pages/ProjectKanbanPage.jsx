@@ -93,6 +93,15 @@ function ProjectKanbanPage() {
 
   const [newColumnName, setNewColumnName] = useState('')
   const [taskTitlesByColumn, setTaskTitlesByColumn] = useState({})
+  const [editingTask, setEditingTask] = useState(null)
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    priority: '',
+    due_date: '',
+  })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   const loadKanban = useCallback(async () => {
     if (!ownerId || !projectId) return
@@ -237,53 +246,70 @@ function ProjectKanbanPage() {
     }
   }
 
-  const handleEditTask = async (task) => {
-    if (!ownerId) return
+  const openEditTaskModal = (task) => {
+    setEditError('')
+    setEditingTask(task)
+    setEditForm({
+      title: task.title ?? '',
+      description: task.description ?? '',
+      priority: task.priority ?? '',
+      due_date: task.due_date ?? '',
+    })
+  }
 
-    const title = window.prompt('Titulo da tarefa:', task.title)
-    if (title === null) return
-    if (!title.trim()) {
-      setError('Titulo da tarefa e obrigatorio.')
+  const closeEditTaskModal = () => {
+    setEditingTask(null)
+    setEditError('')
+    setEditForm({
+      title: '',
+      description: '',
+      priority: '',
+      due_date: '',
+    })
+  }
+
+  const handleSaveTaskEdit = async (event) => {
+    event.preventDefault()
+
+    if (!ownerId || !editingTask) return
+
+    const title = String(editForm.title ?? '').trim()
+    if (!title) {
+      setEditError('Titulo da tarefa e obrigatorio.')
       return
     }
 
-    const description = window.prompt('Descricao:', task.description ?? '')
-    if (description === null) return
-
-    const priority = window.prompt('Priority (low|medium|high):', task.priority ?? '')
-    if (priority === null) return
-
-    const dueDate = window.prompt('Due date (YYYY-MM-DD):', task.due_date ?? '')
-    if (dueDate === null) return
-
+    setEditError('')
+    setEditSaving(true)
     setError('')
-    setSaving(true)
 
     try {
       await updateTask({
         ownerId,
-        taskId: task.id,
+        taskId: editingTask.id,
         input: {
           title,
-          description,
-          priority,
-          due_date: dueDate,
+          description: editForm.description,
+          priority: editForm.priority,
+          due_date: editForm.due_date,
         },
       })
+
       await loadKanban()
-    } catch (editError) {
-      setError(editError.message)
+      closeEditTaskModal()
+    } catch (saveError) {
+      setEditError(saveError.message)
     } finally {
-      setSaving(false)
+      setEditSaving(false)
     }
   }
 
   const handleTaskDrop = async (event, targetColumnId, beforeTaskId = null) => {
     event.preventDefault()
-    event.stopPropagation()
 
     const payload = getDragPayload(event)
     if (!payload || payload.type !== 'task') return
+    event.stopPropagation()
     if (!ownerId) return
 
     setError('')
@@ -420,16 +446,9 @@ function ProjectKanbanPage() {
           {columns.map((column) => (
             <article
               key={column.id}
-              draggable
-              onDragStart={(event) =>
-                setDragPayload(event, {
-                  type: 'column',
-                  columnId: column.id,
-                })
-              }
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleColumnDrop(event, column.id)}
-              className="w-80 min-w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="w-80 min-w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex min-h-[30rem] flex-col"
             >
               <header className="flex items-start justify-between gap-2">
                 <div>
@@ -438,6 +457,20 @@ function ProjectKanbanPage() {
                 </div>
 
                 <div className="flex gap-1">
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) =>
+                      setDragPayload(event, {
+                        type: 'column',
+                        columnId: column.id,
+                      })
+                    }
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100"
+                    title="Arrastar coluna"
+                  >
+                    Arrastar
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleRenameColumn(column)}
@@ -456,25 +489,27 @@ function ProjectKanbanPage() {
               </header>
 
               <div
-                className="mt-3 space-y-2 rounded-lg bg-slate-50 p-2"
+                className="mt-3 flex min-h-40 flex-1 flex-col gap-2 rounded-lg bg-slate-50 p-2"
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => handleTaskDrop(event, column.id, null)}
               >
                 {column.tasks.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-xs text-slate-500">
+                  <p className="flex min-h-28 flex-1 items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-xs text-slate-500">
                     Arraste tarefas para esta coluna.
                   </p>
                 ) : (
                   column.tasks.map((task) => (
                     <div
                       key={task.id}
+                      id={`task-card-${task.id}`}
                       draggable
-                      onDragStart={(event) =>
+                      onDragStart={(event) => {
+                        event.stopPropagation()
                         setDragPayload(event, {
                           type: 'task',
                           taskId: task.id,
                         })
-                      }
+                      }}
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => handleTaskDrop(event, column.id, task.id)}
                       className="rounded-md border border-slate-200 bg-white p-3"
@@ -485,7 +520,7 @@ function ProjectKanbanPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => handleEditTask(task)}
+                        onClick={() => openEditTaskModal(task)}
                         className="mt-2 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100"
                       >
                         Editar task
@@ -543,6 +578,110 @@ function ProjectKanbanPage() {
           </ul>
         )}
       </section>
+
+      {editingTask ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-slate-900">Editar task</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Atualize os campos da tarefa e salve para registrar no log.
+            </p>
+
+            <form onSubmit={handleSaveTaskEdit} className="mt-4 space-y-4">
+              <label className="block text-sm text-slate-700">
+                Title *
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                  required
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+
+              <label className="block text-sm text-slate-700">
+                Description
+                <textarea
+                  value={editForm.description}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm text-slate-700">
+                  Priority
+                  <select
+                    value={editForm.priority}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        priority: event.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  >
+                    <option value="">-</option>
+                    <option value="low">low</option>
+                    <option value="medium">medium</option>
+                    <option value="high">high</option>
+                  </select>
+                </label>
+
+                <label className="block text-sm text-slate-700">
+                  Due date
+                  <input
+                    type="date"
+                    value={editForm.due_date}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        due_date: event.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                </label>
+              </div>
+
+              {editError ? (
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {editError}
+                </p>
+              ) : null}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeEditTaskModal}
+                  disabled={editSaving}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {editSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
