@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { listPipelines } from '../lib/pipelines.js'
 import {
   createProject,
   getProjectById,
@@ -28,6 +29,8 @@ function ProjectFormPage({ mode }) {
   const isEditMode = mode === 'edit'
 
   const [clients, setClients] = useState([])
+  const [pipelines, setPipelines] = useState([])
+  const [selectedPipelineId, setSelectedPipelineId] = useState('')
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -43,10 +46,15 @@ function ProjectFormPage({ mode }) {
       setError('')
 
       try {
-        const clientsData = await listProjectClients({ ownerId })
+        const [clientsData, pipelinesData] = await Promise.all([
+          listProjectClients({ ownerId }),
+          isEditMode ? Promise.resolve([]) : listPipelines({ ownerId }),
+        ])
+
         if (!mounted) return
 
         setClients(clientsData)
+        setPipelines(pipelinesData)
 
         if (!isEditMode || !id) {
           setLoading(false)
@@ -128,6 +136,7 @@ function ProjectFormPage({ mode }) {
         const created = await createProject({
           ownerId,
           input: formData,
+          pipelineId: selectedPipelineId,
         })
 
         navigate(`/app/projects/${created.id}`, { replace: true })
@@ -179,6 +188,24 @@ function ProjectFormPage({ mode }) {
             ))}
           </select>
         </label>
+
+        {!isEditMode ? (
+          <label className="block text-sm text-slate-700 md:col-span-2">
+            Pipeline (opcional)
+            <select
+              value={selectedPipelineId}
+              onChange={(event) => setSelectedPipelineId(event.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            >
+              <option value="">Sem pipeline</option>
+              {pipelines.map((pipeline) => (
+                <option key={pipeline.id} value={pipeline.id}>
+                  {pipeline.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="block text-sm text-slate-700">
           Tipo de servico

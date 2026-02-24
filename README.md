@@ -284,3 +284,42 @@ Visao agregada do kanban em swimlanes por projeto, mantendo colunas reais de cad
 3. Valide filtros de busca, cliente, projeto, prioridade, atrasadas e ordenacao.
 4. Arraste uma task entre colunas do mesmo projeto e recarregue para validar persistencia.
 5. Tente arrastar uma task para coluna de outro projeto e confirme bloqueio do movimento.
+
+## Fase 5 — Pipelines
+
+Templates de Kanban para reutilizar colunas ao criar novos projetos.
+
+### Tabelas criadas
+
+- `pipelines`
+- `pipeline_columns`
+
+Com:
+
+- `owner_id` em ambas
+- RLS com policy `FOR ALL`:
+  - `USING (owner_id = auth.uid())`
+  - `WITH CHECK (owner_id = auth.uid())`
+- Trigger `updated_at` com `public.set_updated_at()`
+
+### Rotas
+
+- `/app/pipelines`
+- `/app/pipelines/:id`
+
+### Como criar pipeline e colunas
+
+1. Acesse `/app/pipelines`.
+2. Crie um pipeline informando o nome.
+3. Entre em `Gerenciar Colunas`.
+4. Crie, renomeie, exclua e reordene colunas por drag-and-drop.
+
+### Projeto com pipeline (clonagem)
+
+Em `/app/projects/new` existe um select opcional de pipeline:
+
+- Se pipeline for selecionado:
+  - o projeto e criado
+  - as colunas de `pipeline_columns` sao clonadas para `project_columns` mantendo a ordem
+- Se nenhum pipeline for selecionado:
+  - o projeto e criado sem colunas iniciais

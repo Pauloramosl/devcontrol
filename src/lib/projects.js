@@ -42,6 +42,11 @@ function normalizeProjectInput(input) {
   }
 }
 
+function normalizePipelineId(value) {
+  const trimmed = String(value ?? '').trim()
+  return trimmed ? trimmed : null
+}
+
 function mapClientFromProject(projectRow) {
   if (!projectRow) return null
   if (Array.isArray(projectRow.clients)) {
@@ -137,12 +142,29 @@ export async function getProjectById({ ownerId, projectId }) {
   }
 }
 
-export async function createProject({ ownerId, input }) {
+export async function createProject({ ownerId, input, pipelineId = null }) {
   if (!ownerId) {
     throw new Error('ownerId is required to create a project.')
   }
 
   const payload = normalizeProjectInput(input)
+  const normalizedPipelineId = normalizePipelineId(pipelineId)
+  let templateColumns = []
+
+  if (normalizedPipelineId) {
+    const { data: pipelineColumns, error: pipelineColumnsError } = await supabase
+      .from('pipeline_columns')
+      .select('name, column_order')
+      .eq('owner_id', ownerId)
+      .eq('pipeline_id', normalizedPipelineId)
+      .order('column_order', { ascending: true })
+
+    if (pipelineColumnsError) {
+      throw pipelineColumnsError
+    }
+
+    templateColumns = pipelineColumns ?? []
+  }
 
   const { data, error } = await supabase
     .from('projects')
@@ -155,6 +177,21 @@ export async function createProject({ ownerId, input }) {
 
   if (error) {
     throw error
+  }
+
+  if (templateColumns.length > 0) {
+    const rows = templateColumns.map((column) => ({
+      owner_id: ownerId,
+      project_id: data.id,
+      name: column.name,
+      column_order: column.column_order,
+    }))
+
+    const { error: cloneError } = await supabase.from('project_columns').insert(rows)
+
+    if (cloneError) {
+      throw cloneError
+    }
   }
 
   return data

@@ -7,6 +7,8 @@ import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import PipelineDetailPage from './pages/PipelineDetailPage.jsx'
+import PipelinesListPage from './pages/PipelinesListPage.jsx'
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx'
 import ProjectFormPage from './pages/ProjectFormPage.jsx'
 import GlobalKanbanPage from './pages/GlobalKanbanPage.jsx'
@@ -34,6 +36,8 @@ function App() {
           <Route path="/app/projects/:id/edit" element={<ProjectFormPage mode="edit" />} />
           <Route path="/app/projects/:id/kanban" element={<ProjectKanbanPage />} />
           <Route path="/app/kanban" element={<GlobalKanbanPage />} />
+          <Route path="/app/pipelines" element={<PipelinesListPage />} />
+          <Route path="/app/pipelines/:id" element={<PipelineDetailPage />} />
         </Route>
       </Route>
 
