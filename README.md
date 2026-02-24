@@ -249,3 +249,38 @@ Foi implementado LexoRank simplificado em `src/lib/rank.js`:
 - `rankBefore(b)`
 
 Se nao houver espaco entre ranks, o sistema reindexa a coluna e tenta novamente.
+
+## Fase 4 — Kanban Global
+
+Visao agregada do kanban em swimlanes por projeto, mantendo colunas reais de cada projeto e tasks ordenadas.
+
+### Rota criada
+
+- `/app/kanban`
+
+### Filtros implementados
+
+- Busca por texto em `title` e `description`
+- Filtro por cliente
+- Filtro por projeto
+- Filtro por prioridade (`low`, `medium`, `high`, ou todas)
+- Toggle de atrasadas (`due_date < hoje` e `status = active`)
+- Ordenacao por:
+  - rank (padrao)
+  - vencimento (`due_date` asc)
+  - prioridade (`high > medium > low`)
+
+### Regras de drag-and-drop no global
+
+- Permite mover tasks apenas dentro do mesmo projeto.
+- Permite reorder dentro da coluna e mover entre colunas do mesmo projeto.
+- Nao permite drop entre projetos diferentes (movimento bloqueado).
+- Persistencia via `column_id` e `rank`, com log `move_task`.
+
+### Como testar manualmente
+
+1. Rode `npm run dev`.
+2. Abra `/app/kanban`.
+3. Valide filtros de busca, cliente, projeto, prioridade, atrasadas e ordenacao.
+4. Arraste uma task entre colunas do mesmo projeto e recarregue para validar persistencia.
+5. Tente arrastar uma task para coluna de outro projeto e confirme bloqueio do movimento.

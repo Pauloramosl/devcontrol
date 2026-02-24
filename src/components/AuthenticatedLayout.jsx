@@ -45,6 +45,9 @@ function AuthenticatedLayout() {
               <NavLink to="/app/projects" className={navClassName}>
                 Projetos
               </NavLink>
+              <NavLink to="/app/kanban" className={navClassName}>
+                Kanban Global
+              </NavLink>
               <NavLink to="/app/tags" className={navClassName}>
                 Tags
               </NavLink>
