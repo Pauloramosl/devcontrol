@@ -6,6 +6,8 @@ import AuthCallbackPage from './pages/AuthCallbackPage.jsx'
 import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
+import FinanceHomePage from './pages/FinanceHomePage.jsx'
+import InvoicesListPage from './pages/InvoicesListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import PipelineDetailPage from './pages/PipelineDetailPage.jsx'
 import PipelinesListPage from './pages/PipelinesListPage.jsx'
@@ -14,6 +16,8 @@ import ProjectFormPage from './pages/ProjectFormPage.jsx'
 import GlobalKanbanPage from './pages/GlobalKanbanPage.jsx'
 import ProjectKanbanPage from './pages/ProjectKanbanPage.jsx'
 import ProjectsListPage from './pages/ProjectsListPage.jsx'
+import RecurrenceFormPage from './pages/RecurrenceFormPage.jsx'
+import RecurrencesListPage from './pages/RecurrencesListPage.jsx'
 import TagsPage from './pages/TagsPage.jsx'
 
 function App() {
@@ -38,6 +42,11 @@ function App() {
           <Route path="/app/kanban" element={<GlobalKanbanPage />} />
           <Route path="/app/pipelines" element={<PipelinesListPage />} />
           <Route path="/app/pipelines/:id" element={<PipelineDetailPage />} />
+          <Route path="/app/finance" element={<FinanceHomePage />} />
+          <Route path="/app/finance/recurrences" element={<RecurrencesListPage />} />
+          <Route path="/app/finance/recurrences/new" element={<RecurrenceFormPage />} />
+          <Route path="/app/finance/recurrences/:id" element={<RecurrenceFormPage />} />
+          <Route path="/app/finance/invoices" element={<InvoicesListPage />} />
         </Route>
       </Route>
 

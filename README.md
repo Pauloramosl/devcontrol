@@ -323,3 +323,53 @@ Em `/app/projects/new` existe um select opcional de pipeline:
   - as colunas de `pipeline_columns` sao clonadas para `project_columns` mantendo a ordem
 - Se nenhum pipeline for selecionado:
   - o projeto e criado sem colunas iniciais
+
+## Fase 6 — Financeiro Base
+
+Modulo financeiro inicial com recorrencias, cobrancas e visao de cards.
+
+### Tabelas criadas
+
+- `recurrences`
+- `invoices`
+
+Com:
+
+- `owner_id` e RLS em ambas
+- policy `FOR ALL` com:
+  - `USING (owner_id = auth.uid())`
+  - `WITH CHECK (owner_id = auth.uid())`
+- trigger `updated_at` via `public.set_updated_at()`
+
+### Rotas
+
+- `/app/finance`
+- `/app/finance/recurrences`
+- `/app/finance/recurrences/new`
+- `/app/finance/recurrences/:id`
+- `/app/finance/invoices`
+
+### Como gerar cobrancas do mes
+
+1. Acesse `/app/finance` (ou `/app/finance/recurrences`).
+2. Clique em `Gerar mes atual`.
+3. O sistema cria invoices `pending` para recorrencias `active` sem duplicar
+   (`owner_id + recurrence_id + reference_month`).
+4. A tela mostra quantas foram criadas e quantas foram ignoradas por ja existir.
+
+### Como marcar invoice como pago
+
+1. Acesse `/app/finance/invoices`.
+2. Filtre se necessario (status, cliente, referencia).
+3. Escolha o metodo de pagamento na linha da invoice.
+4. Clique em `Marcar como pago` para salvar:
+   - `status = paid`
+   - `paid_at = now()`
+   - `payment_method` informado
+
+### Regra de overdue
+
+Overdue nao e trigger no banco.
+No frontend:
+
+- `overdue = due_date < hoje AND status = 'pending'`
