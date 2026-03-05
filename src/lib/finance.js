@@ -3,6 +3,8 @@ import { supabase } from './supabase.js'
 export const RECURRENCE_STATUSES = ['active', 'paused', 'canceled']
 export const INVOICE_STATUSES = ['pending', 'paid', 'overdue', 'canceled']
 export const INVOICE_FILTER_STATUSES = ['all', 'pending', 'paid', 'overdue']
+export const EXPENSE_STATUSES = ['pending', 'paid', 'overdue', 'canceled']
+export const EXPENSE_FILTER_STATUSES = ['all', 'pending', 'paid', 'overdue', 'canceled']
 export const PAYMENT_METHOD_OPTIONS = ['pix', 'boleto', 'transfer', 'card', 'cash']
 
 function normalizeText(value) {
@@ -37,10 +39,28 @@ function normalizeStartDate(value) {
   return date
 }
 
+function normalizeDueDate(value) {
+  const date = String(value ?? '').trim()
+  if (!date) {
+    throw new Error('Due date is required.')
+  }
+
+  return date
+}
+
 function normalizeRecurrenceStatus(value) {
   const status = String(value ?? '').trim().toLowerCase()
   if (!RECURRENCE_STATUSES.includes(status)) {
     throw new Error('Invalid recurrence status.')
+  }
+
+  return status
+}
+
+function normalizeExpenseStatus(value) {
+  const status = String(value ?? '').trim().toLowerCase()
+  if (!EXPENSE_STATUSES.includes(status)) {
+    throw new Error('Invalid expense status.')
   }
 
   return status
@@ -65,6 +85,21 @@ function normalizeRecurrenceInput(input) {
     due_day: normalizeDueDay(input?.due_day),
     status: normalizeRecurrenceStatus(input?.status ?? 'active'),
     notes: normalizeText(input?.notes),
+  }
+}
+
+function normalizeExpenseInput(input) {
+  const description = String(input?.description ?? '').trim()
+  if (!description) {
+    throw new Error('Description is required.')
+  }
+
+  return {
+    description,
+    category: normalizeText(input?.category),
+    value: normalizePositiveValue(input?.value),
+    due_date: normalizeDueDate(input?.due_date),
+    status: normalizeExpenseStatus(input?.status ?? 'pending'),
   }
 }
 
@@ -105,6 +140,14 @@ export function getInvoiceDisplayStatus(invoice, todayIsoDate = getTodayIsoDate(
   }
 
   return invoice.status
+}
+
+export function getExpenseDisplayStatus(expense, todayIsoDate = getTodayIsoDate()) {
+  if (expense.status === 'pending' && expense.due_date && expense.due_date < todayIsoDate) {
+    return 'overdue'
+  }
+
+  return expense.status
 }
 
 export async function listFinanceClients({ ownerId }) {
@@ -416,12 +459,194 @@ export async function markInvoiceAsPaid({ ownerId, invoiceId, paymentMethod }) {
   return data
 }
 
+export async function listExpenses({
+  ownerId,
+  status = 'all',
+  searchTerm = '',
+  category = '',
+}) {
+  if (!ownerId) {
+    throw new Error('ownerId is required to list expenses.')
+  }
+
+  const normalizedStatus = String(status ?? 'all').trim().toLowerCase()
+  if (!EXPENSE_FILTER_STATUSES.includes(normalizedStatus)) {
+    throw new Error('Invalid expense status filter.')
+  }
+
+  const normalizedSearch = String(searchTerm ?? '').trim().toLowerCase()
+  const normalizedCategory = String(category ?? '').trim().toLowerCase()
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .select('id, owner_id, description, category, value, due_date, status, paid_at, created_at, updated_at')
+    .eq('owner_id', ownerId)
+    .order('due_date', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  const todayIsoDate = getTodayIsoDate()
+
+  const mapped = (data ?? []).map((expense) => ({
+    ...expense,
+    display_status: getExpenseDisplayStatus(expense, todayIsoDate),
+  }))
+
+  return mapped.filter((expense) => {
+    if (normalizedStatus !== 'all' && expense.display_status !== normalizedStatus) {
+      return false
+    }
+
+    if (normalizedSearch && !expense.description.toLowerCase().includes(normalizedSearch)) {
+      return false
+    }
+
+    if (normalizedCategory) {
+      const expenseCategory = String(expense.category ?? '').toLowerCase()
+      if (!expenseCategory.includes(normalizedCategory)) {
+        return false
+      }
+    }
+
+    return true
+  })
+}
+
+export async function getExpenseById({ ownerId, expenseId }) {
+  if (!ownerId || !expenseId) {
+    throw new Error('ownerId and expenseId are required.')
+  }
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .select('id, owner_id, description, category, value, due_date, status, paid_at, created_at, updated_at')
+    .eq('owner_id', ownerId)
+    .eq('id', expenseId)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function createExpense({ ownerId, input }) {
+  if (!ownerId) {
+    throw new Error('ownerId is required to create expense.')
+  }
+
+  const payload = normalizeExpenseInput(input)
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({
+      owner_id: ownerId,
+      ...payload,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function updateExpense({ ownerId, expenseId, input }) {
+  if (!ownerId || !expenseId) {
+    throw new Error('ownerId and expenseId are required to update expense.')
+  }
+
+  const payload = normalizeExpenseInput(input)
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .update(payload)
+    .eq('owner_id', ownerId)
+    .eq('id', expenseId)
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function deleteExpense({ ownerId, expenseId }) {
+  if (!ownerId || !expenseId) {
+    throw new Error('ownerId and expenseId are required to delete expense.')
+  }
+
+  const { error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('owner_id', ownerId)
+    .eq('id', expenseId)
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function markExpenseAsPaid({ ownerId, expenseId }) {
+  if (!ownerId || !expenseId) {
+    throw new Error('ownerId and expenseId are required to mark expense as paid.')
+  }
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+    })
+    .eq('owner_id', ownerId)
+    .eq('id', expenseId)
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function markExpenseAsPending({ ownerId, expenseId }) {
+  if (!ownerId || !expenseId) {
+    throw new Error('ownerId and expenseId are required to mark expense as pending.')
+  }
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .update({
+      status: 'pending',
+      paid_at: null,
+    })
+    .eq('owner_id', ownerId)
+    .eq('id', expenseId)
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
 export async function getFinanceSummary({ ownerId }) {
   if (!ownerId) {
     throw new Error('ownerId is required to load finance summary.')
   }
 
-  const [recurrencesResult, invoicesResult] = await Promise.all([
+  const [recurrencesResult, invoicesResult, expensesResult] = await Promise.all([
     supabase
       .from('recurrences')
       .select('id, value, status, periodicity')
@@ -429,6 +654,10 @@ export async function getFinanceSummary({ ownerId }) {
     supabase
       .from('invoices')
       .select('id, value, due_date, status, payment_method, clients(id, name)')
+      .eq('owner_id', ownerId),
+    supabase
+      .from('expenses')
+      .select('id, value, due_date, status')
       .eq('owner_id', ownerId),
   ])
 
@@ -440,8 +669,13 @@ export async function getFinanceSummary({ ownerId }) {
     throw invoicesResult.error
   }
 
+  if (expensesResult.error) {
+    throw expensesResult.error
+  }
+
   const recurrences = recurrencesResult.data ?? []
   const invoices = invoicesResult.data ?? []
+  const expenses = expensesResult.data ?? []
   const todayIsoDate = getTodayIsoDate()
 
   const mrr = recurrences
@@ -468,9 +702,26 @@ export async function getFinanceSummary({ ownerId }) {
     .sort((left, right) => left.due_date.localeCompare(right.due_date))
     .slice(0, 5)
 
+  const mappedExpenses = expenses.map((expense) => ({
+    ...expense,
+    display_status: getExpenseDisplayStatus(expense, todayIsoDate),
+  }))
+
+  const payableTotal = mappedExpenses
+    .filter((expense) => expense.display_status === 'pending' || expense.display_status === 'overdue')
+    .reduce((sum, expense) => sum + Number(expense.value ?? 0), 0)
+
+  const predictedIncoming = receivableTotal
+  const predictedOutgoing = payableTotal
+  const predictedBalance = predictedIncoming - predictedOutgoing
+
   return {
     mrr,
     receivableTotal,
+    payableTotal,
+    predictedIncoming,
+    predictedOutgoing,
+    predictedBalance,
     overdueCount,
     overdueTotal,
     upcomingInvoices,

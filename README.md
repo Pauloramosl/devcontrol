@@ -375,3 +375,53 @@ No frontend:
 - `overdue = due_date < hoje AND status = 'pending'`
 
 Nota: UI do Financeiro padronizada para PT-BR e botões de voltar adicionados nas telas principais do modulo.
+
+## Fase 7 — Despesas e Fluxo de Caixa
+
+Foi adicionado o modulo de contas a pagar e previsao de caixa no Financeiro.
+
+### Tabela criada
+
+- `expenses`
+
+Com:
+
+- `owner_id` e RLS
+- policy `FOR ALL` com:
+  - `USING (owner_id = auth.uid())`
+  - `WITH CHECK (owner_id = auth.uid())`
+- trigger `updated_at` com `public.set_updated_at()`
+
+### Rotas
+
+- `/app/finance/expenses`
+- `/app/finance/expenses/new`
+- `/app/finance/expenses/:id`
+
+### Como criar despesa
+
+1. Acesse `/app/finance/expenses`.
+2. Clique em `Nova despesa`.
+3. Informe descricao, valor (> 0), vencimento e categoria opcional.
+4. Salve para registrar.
+
+### Como marcar como paga
+
+Na lista de despesas (`/app/finance/expenses`), use:
+
+- `Marcar como paga` para definir `status = paid` e `paid_at = now()`.
+- `Marcar como pendente` (quando aplicavel) para desfazer o pagamento.
+
+### Regra de vencido (derivado)
+
+No frontend:
+
+- `vencido = due_date < hoje AND status = 'pending'`
+
+### Como validar saldo previsto
+
+Em `/app/finance`:
+
+- `Entradas previstas` = cobrancas pendentes + vencidas (derivado)
+- `Saidas previstas` = despesas pendentes + vencidas (derivado)
+- `Saldo previsto` = `Entradas previstas - Saidas previstas`

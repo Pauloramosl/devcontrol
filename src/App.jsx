@@ -6,6 +6,8 @@ import AuthCallbackPage from './pages/AuthCallbackPage.jsx'
 import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
+import ExpenseFormPage from './pages/ExpenseFormPage.jsx'
+import ExpensesListPage from './pages/ExpensesListPage.jsx'
 import FinanceHomePage from './pages/FinanceHomePage.jsx'
 import InvoicesListPage from './pages/InvoicesListPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -47,6 +49,9 @@ function App() {
           <Route path="/app/finance/recurrences/new" element={<RecurrenceFormPage />} />
           <Route path="/app/finance/recurrences/:id" element={<RecurrenceFormPage />} />
           <Route path="/app/finance/invoices" element={<InvoicesListPage />} />
+          <Route path="/app/finance/expenses" element={<ExpensesListPage />} />
+          <Route path="/app/finance/expenses/new" element={<ExpenseFormPage />} />
+          <Route path="/app/finance/expenses/:id" element={<ExpenseFormPage />} />
         </Route>
       </Route>
 
