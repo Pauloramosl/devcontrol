@@ -19,6 +19,12 @@ const EMPTY_FORM = {
   notes: '',
 }
 
+const RECURRENCE_STATUS_LABELS = {
+  active: 'Ativo',
+  paused: 'Pausado',
+  canceled: 'Cancelado',
+}
+
 function RecurrenceFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -61,7 +67,7 @@ function RecurrenceFormPage() {
         if (!mounted) return
 
         if (!recurrence) {
-          setError('Recorrencia nao encontrada.')
+          setError('Recorrência não encontrada.')
           setLoading(false)
           return
         }
@@ -92,7 +98,7 @@ function RecurrenceFormPage() {
   }, [id, isEditMode, ownerId])
 
   const pageTitle = useMemo(
-    () => (isEditMode ? 'Editar recorrencia' : 'Nova recorrencia'),
+    () => (isEditMode ? 'Editar recorrência' : 'Nova recorrência'),
     [isEditMode],
   )
 
@@ -131,7 +137,7 @@ function RecurrenceFormPage() {
     }
 
     if (!Number.isInteger(dueDayNumber) || dueDayNumber < 1 || dueDayNumber > 31) {
-      setError('Due day deve estar entre 1 e 31.')
+      setError('Dia do vencimento deve estar entre 1 e 31.')
       return
     }
 
@@ -162,7 +168,7 @@ function RecurrenceFormPage() {
   const handleDelete = async () => {
     if (!ownerId || !id) return
 
-    const confirmed = window.confirm('Excluir recorrencia?')
+    const confirmed = window.confirm('Excluir recorrência?')
     if (!confirmed) return
 
     setSaving(true)
@@ -183,7 +189,7 @@ function RecurrenceFormPage() {
   if (loading) {
     return (
       <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <p className="text-sm text-slate-600">Carregando formulario de recorrencia...</p>
+        <p className="text-sm text-slate-600">Carregando formulário de recorrência...</p>
       </section>
     )
   }
@@ -196,7 +202,7 @@ function RecurrenceFormPage() {
           to="/app/finance/recurrences"
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
         >
-          Voltar
+          Voltar para Recorrências
         </Link>
       </div>
 
@@ -237,7 +243,7 @@ function RecurrenceFormPage() {
         </label>
 
         <label className="block text-sm text-slate-700">
-          Data de inicio *
+          Data de início *
           <input
             type="date"
             name="start_date"
@@ -249,7 +255,7 @@ function RecurrenceFormPage() {
         </label>
 
         <label className="block text-sm text-slate-700">
-          Due day *
+          Dia do vencimento *
           <input
             type="number"
             name="due_day"
@@ -272,7 +278,7 @@ function RecurrenceFormPage() {
           >
             {RECURRENCE_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {RECURRENCE_STATUS_LABELS[status] ?? status}
               </option>
             ))}
           </select>

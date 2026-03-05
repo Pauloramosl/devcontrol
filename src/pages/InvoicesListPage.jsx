@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   INVOICE_FILTER_STATUSES,
@@ -7,6 +8,22 @@ import {
   listInvoices,
   markInvoiceAsPaid,
 } from '../lib/finance.js'
+
+const INVOICE_STATUS_LABELS = {
+  all: 'Todos',
+  pending: 'Pendente',
+  paid: 'Pago',
+  overdue: 'Vencido',
+  canceled: 'Cancelado',
+}
+
+const PAYMENT_METHOD_LABELS = {
+  pix: 'Pix',
+  boleto: 'Boleto',
+  transfer: 'Transferência',
+  card: 'Cartão',
+  cash: 'Dinheiro',
+}
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
@@ -20,6 +37,10 @@ function statusColor(status) {
   if (status === 'overdue') return 'bg-red-100 text-red-800'
   if (status === 'pending') return 'bg-amber-100 text-amber-800'
   return 'bg-slate-100 text-slate-700'
+}
+
+function getInvoiceStatusLabel(status) {
+  return INVOICE_STATUS_LABELS[status] ?? status
 }
 
 function InvoicesListPage() {
@@ -141,11 +162,19 @@ function InvoicesListPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-slate-900">Cobrancas</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Lista de invoices com overdue derivado e baixa manual de pagamento.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900">Cobranças</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Lista de cobranças com vencido derivado e baixa manual de pagamento.
+          </p>
+        </div>
+        <Link
+          to="/app/finance"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+        >
+          Voltar para Financeiro
+        </Link>
       </div>
 
       <form
@@ -161,7 +190,7 @@ function InvoicesListPage() {
           >
             {INVOICE_FILTER_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {getInvoiceStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -174,7 +203,7 @@ function InvoicesListPage() {
             onChange={(event) => setClientInput(event.target.value)}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="all">all</option>
+            <option value="all">Todos</option>
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
                 {client.name}
@@ -184,7 +213,7 @@ function InvoicesListPage() {
         </label>
 
         <label className="block text-sm text-slate-700">
-          Mes referencia
+          Mês de referência
           <input
             type="text"
             value={referenceMonthInput}
@@ -214,15 +243,17 @@ function InvoicesListPage() {
       {appliedFilters.status !== 'all' || activeClientName || appliedFilters.referenceMonth ? (
         <p className="text-sm text-slate-500">
           Filtros ativos:
-          {appliedFilters.status !== 'all' ? ` status="${appliedFilters.status}"` : ''}
+          {appliedFilters.status !== 'all'
+            ? ` status="${getInvoiceStatusLabel(appliedFilters.status)}"`
+            : ''}
           {activeClientName ? ` cliente="${activeClientName}"` : ''}
-          {appliedFilters.referenceMonth ? ` referencia="${appliedFilters.referenceMonth}"` : ''}
+          {appliedFilters.referenceMonth ? ` referência="${appliedFilters.referenceMonth}"` : ''}
         </p>
       ) : null}
 
       {loading ? (
         <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-          Carregando cobrancas...
+          Carregando cobranças...
         </p>
       ) : null}
 
@@ -232,7 +263,7 @@ function InvoicesListPage() {
 
       {!loading && !error && invoices.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-600">Nenhuma cobranca encontrada.</p>
+          <p className="text-sm text-slate-600">Nenhuma cobrança encontrada.</p>
         </div>
       ) : null}
 
@@ -248,16 +279,19 @@ function InvoicesListPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">{invoice.client_name}</h3>
                     <p className="text-sm text-slate-600">
-                      Valor: {formatCurrency(invoice.value)} | Due: {invoice.due_date}
+                      Valor: {formatCurrency(invoice.value)} | Vencimento: {invoice.due_date}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Ref: {invoice.reference_month ?? '-'} | Metodo: {invoice.payment_method ?? '-'}
+                      Referência: {invoice.reference_month ?? '-'} | Método de pagamento:{' '}
+                      {invoice.payment_method
+                        ? PAYMENT_METHOD_LABELS[invoice.payment_method] ?? invoice.payment_method
+                        : '-'}
                     </p>
                     <div className="mt-2">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${statusColor(invoice.display_status)}`}
                       >
-                        {invoice.display_status}
+                        {getInvoiceStatusLabel(invoice.display_status)}
                       </span>
                     </div>
                   </div>
@@ -265,7 +299,7 @@ function InvoicesListPage() {
                   {canMarkAsPaid ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                       <label className="text-xs text-slate-600">
-                        Metodo
+                        Método de pagamento
                         <select
                           value={paymentMethodsByInvoice[invoice.id] ?? 'pix'}
                           onChange={(event) =>
@@ -278,7 +312,7 @@ function InvoicesListPage() {
                         >
                           {PAYMENT_METHOD_OPTIONS.map((method) => (
                             <option key={method} value={method}>
-                              {method}
+                              {PAYMENT_METHOD_LABELS[method] ?? method}
                             </option>
                           ))}
                         </select>

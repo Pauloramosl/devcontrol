@@ -373,3 +373,5 @@ Overdue nao e trigger no banco.
 No frontend:
 
 - `overdue = due_date < hoje AND status = 'pending'`
+
+Nota: UI do Financeiro padronizada para PT-BR e botões de voltar adicionados nas telas principais do modulo.

@@ -56,7 +56,7 @@ function FinanceHomePage() {
     try {
       const result = await generateCurrentMonthInvoices({ ownerId })
       setGenerateMessage(
-        `Mes ${result.referenceMonth}: ${result.createdCount} cobranca(s) criada(s), ${result.skippedCount} ignorada(s).`,
+        `Mês ${result.referenceMonth}: ${result.createdCount} cobrança(s) criada(s), ${result.skippedCount} ignorada(s).`,
       )
       await loadSummary()
     } catch (generateError) {
@@ -72,7 +72,7 @@ function FinanceHomePage() {
         <div>
           <h2 className="text-2xl font-semibold text-slate-900">Financeiro</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Recorrencias, cobrancas e indicadores basicos do caixa.
+            Recorrências, cobranças e indicadores básicos do caixa.
           </p>
         </div>
 
@@ -83,7 +83,7 @@ function FinanceHomePage() {
             disabled={saving}
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {saving ? 'Gerando...' : 'Gerar mes atual'}
+            {saving ? 'Gerando...' : 'Gerar mês atual'}
           </button>
         </div>
       </div>
@@ -93,13 +93,13 @@ function FinanceHomePage() {
           to="/app/finance/recurrences"
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
         >
-          Ver recorrencias
+          Ver recorrências
         </Link>
         <Link
           to="/app/finance/invoices"
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
         >
-          Ver cobrancas
+          Ver cobranças
         </Link>
       </div>
 
@@ -134,7 +134,7 @@ function FinanceHomePage() {
           </article>
 
           <article className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-600">Inadimplencia</p>
+            <p className="text-sm text-slate-600">Inadimplência</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">
               {summary.overdueCount} | {formatCurrency(summary.overdueTotal)}
             </p>
@@ -144,16 +144,16 @@ function FinanceHomePage() {
 
       {!loading ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="text-lg font-semibold text-slate-900">Proximos vencimentos</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Próximos vencimentos</h3>
           {summary.upcomingInvoices.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-600">Sem cobrancas pendentes no momento.</p>
+            <p className="mt-2 text-sm text-slate-600">Sem cobranças pendentes no momento.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {summary.upcomingInvoices.map((invoice) => (
                 <li key={invoice.id} className="rounded-md border border-slate-200 p-3">
                   <p className="text-sm font-medium text-slate-900">{invoice.client_name}</p>
                   <p className="text-xs text-slate-500">
-                    Due: {invoice.due_date ?? '-'} | Value: {formatCurrency(invoice.value)}
+                    Vencimento: {invoice.due_date ?? '-'} | Valor: {formatCurrency(invoice.value)}
                   </p>
                 </li>
               ))}
