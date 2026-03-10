@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAlerts } from '../context/AlertsContext.jsx'
 import {
   EXPENSE_FILTER_STATUSES,
   listExpenses,
@@ -37,6 +38,7 @@ function statusColor(status) {
 function ExpensesListPage() {
   const { user } = useAuth()
   const ownerId = user?.id
+  const { refresh: refreshAlerts } = useAlerts()
 
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -109,6 +111,7 @@ function ExpensesListPage() {
         expenseId,
       })
       await loadExpenses()
+      refreshAlerts()
     } catch (saveError) {
       setError(saveError.message)
     } finally {
@@ -128,6 +131,7 @@ function ExpensesListPage() {
         expenseId,
       })
       await loadExpenses()
+      refreshAlerts()
     } catch (saveError) {
       setError(saveError.message)
     } finally {

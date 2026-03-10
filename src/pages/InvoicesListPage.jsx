@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAlerts } from '../context/AlertsContext.jsx'
 import {
   INVOICE_FILTER_STATUSES,
   PAYMENT_METHOD_OPTIONS,
@@ -46,6 +47,7 @@ function getInvoiceStatusLabel(status) {
 function InvoicesListPage() {
   const { user } = useAuth()
   const ownerId = user?.id
+  const { refresh: refreshAlerts } = useAlerts()
 
   const [clients, setClients] = useState([])
   const [invoices, setInvoices] = useState([])
@@ -153,6 +155,7 @@ function InvoicesListPage() {
         paymentMethod,
       })
       await loadInvoices()
+      refreshAlerts()
     } catch (saveError) {
       setError(saveError.message)
     } finally {

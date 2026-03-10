@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAlerts } from '../context/AlertsContext.jsx'
 import {
   createProjectColumn,
   createTask,
@@ -82,6 +83,7 @@ function ProjectKanbanPage() {
   const { id: projectId } = useParams()
   const { user } = useAuth()
   const ownerId = user?.id
+  const { refresh: refreshAlerts } = useAlerts()
 
   const [project, setProject] = useState(null)
   const [columns, setColumns] = useState([])
@@ -239,6 +241,7 @@ function ProjectKanbanPage() {
       }))
 
       await loadKanban()
+      refreshAlerts()
     } catch (createError) {
       setError(createError.message)
     } finally {
@@ -296,6 +299,7 @@ function ProjectKanbanPage() {
       })
 
       await loadKanban()
+      refreshAlerts()
       closeEditTaskModal()
     } catch (saveError) {
       setEditError(saveError.message)

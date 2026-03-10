@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAlerts } from '../context/AlertsContext.jsx'
 import { createExpense, deleteExpense, getExpenseById, updateExpense } from '../lib/finance.js'
 
 const EMPTY_FORM = {
@@ -17,6 +18,7 @@ function ExpenseFormPage() {
   const { user } = useAuth()
 
   const ownerId = user?.id
+  const { refresh: refreshAlerts } = useAlerts()
   const isEditMode = Boolean(id)
 
   const [formData, setFormData] = useState(EMPTY_FORM)
@@ -130,6 +132,7 @@ function ExpenseFormPage() {
         })
       }
 
+      refreshAlerts()
       navigate('/app/finance/expenses', { replace: true })
     } catch (submitError) {
       setError(submitError.message)
@@ -151,6 +154,7 @@ function ExpenseFormPage() {
         ownerId,
         expenseId: id,
       })
+      refreshAlerts()
       navigate('/app/finance/expenses', { replace: true })
     } catch (deleteError) {
       setError(deleteError.message)

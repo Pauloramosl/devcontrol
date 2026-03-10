@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { generateCurrentMonthInvoices, getFinanceSummary } from '../lib/finance.js'
-import { getAlertCounts } from '../lib/alerts.js'
+import { useAlerts } from '../context/AlertsContext.jsx'
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
@@ -26,15 +26,11 @@ function FinanceHomePage() {
     overdueTotal: 0,
     upcomingInvoices: [],
   })
-  const [alertSummary, setAlertSummary] = useState({
-    overdueInvoices: 0,
-    overdueExpenses: 0,
-    overdueTasks: 0,
-  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [generateMessage, setGenerateMessage] = useState('')
+  const { counts, refresh: refreshAlerts } = useAlerts()
 
   const loadSummary = useCallback(async () => {
     if (!ownerId) return
@@ -43,16 +39,8 @@ function FinanceHomePage() {
     setError('')
 
     try {
-      const [data, alerts] = await Promise.all([
-        getFinanceSummary({ ownerId }),
-        getAlertCounts({ ownerId }),
-      ])
+      const data = await getFinanceSummary({ ownerId })
       setSummary(data)
-      setAlertSummary({
-        overdueInvoices: alerts.overdueInvoices,
-        overdueExpenses: alerts.overdueExpenses,
-        overdueTasks: alerts.overdueTasks,
-      })
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -77,6 +65,7 @@ function FinanceHomePage() {
         `Mes ${result.referenceMonth}: ${result.createdCount} cobranca(s) criada(s), ${result.skippedCount} ignorada(s).`,
       )
       await loadSummary()
+      refreshAlerts()
     } catch (generateError) {
       setError(generateError.message)
     } finally {
@@ -221,19 +210,19 @@ function FinanceHomePage() {
             <article className="rounded-md border border-slate-200 p-3">
               <p className="text-xs text-slate-500">Cobrancas vencidas</p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {alertSummary.overdueInvoices}
+                {counts.overdueInvoices}
               </p>
             </article>
             <article className="rounded-md border border-slate-200 p-3">
               <p className="text-xs text-slate-500">Despesas vencidas</p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {alertSummary.overdueExpenses}
+                {counts.overdueExpenses}
               </p>
             </article>
             <article className="rounded-md border border-slate-200 p-3">
               <p className="text-xs text-slate-500">Tarefas atrasadas</p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {alertSummary.overdueTasks}
+                {counts.overdueTasks}
               </p>
             </article>
           </div>

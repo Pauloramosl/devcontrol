@@ -444,3 +444,5 @@ Alertas derivados no frontend para vencimentos e tarefas atrasadas.
 ### Badge no menu
 
 O menu autenticado exibe um badge com a soma total de alertas ativos.
+
+Nota: o badge agora atualiza automaticamente ao trocar de rota, focar a aba e apos acoes relevantes.
