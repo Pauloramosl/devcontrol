@@ -6,6 +6,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage.jsx'
 import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
+import AlertsPage from './pages/AlertsPage.jsx'
 import ExpenseFormPage from './pages/ExpenseFormPage.jsx'
 import ExpensesListPage from './pages/ExpensesListPage.jsx'
 import FinanceHomePage from './pages/FinanceHomePage.jsx'
@@ -31,6 +32,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AuthenticatedLayout />}>
           <Route path="/app" element={<AppHomePage />} />
+          <Route path="/app/alerts" element={<AlertsPage />} />
           <Route path="/app/clients" element={<ClientsListPage />} />
           <Route path="/app/clients/new" element={<ClientFormPage mode="create" />} />
           <Route path="/app/clients/:id" element={<ClientDetailPage />} />

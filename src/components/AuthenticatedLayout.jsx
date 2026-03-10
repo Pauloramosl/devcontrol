@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { getAlertCounts } from '../lib/alerts.js'
 
 const navClassName = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium transition ${
@@ -13,6 +14,35 @@ function AuthenticatedLayout() {
 
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [logoutError, setLogoutError] = useState('')
+  const [alertCount, setAlertCount] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadAlerts = async () => {
+      if (!user?.id) {
+        if (isActive) setAlertCount(0)
+        return
+      }
+
+      try {
+        const counts = await getAlertCounts({ ownerId: user.id })
+        if (isActive) {
+          setAlertCount(counts.total)
+        }
+      } catch {
+        if (isActive) {
+          setAlertCount(0)
+        }
+      }
+    }
+
+    loadAlerts()
+
+    return () => {
+      isActive = false
+    }
+  }, [user?.id])
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -47,6 +77,16 @@ function AuthenticatedLayout() {
               </NavLink>
               <NavLink to="/app/finance" className={navClassName}>
                 Financeiro
+              </NavLink>
+              <NavLink to="/app/alerts" className={navClassName}>
+                <span className="flex items-center gap-2">
+                  Alertas
+                  {alertCount > 0 ? (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                      {alertCount}
+                    </span>
+                  ) : null}
+                </span>
               </NavLink>
               <NavLink to="/app/kanban" className={navClassName}>
                 Kanban Global

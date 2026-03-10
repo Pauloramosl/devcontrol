@@ -425,3 +425,22 @@ Em `/app/finance`:
 - `Entradas previstas` = cobrancas pendentes + vencidas (derivado)
 - `Saidas previstas` = despesas pendentes + vencidas (derivado)
 - `Saldo previsto` = `Entradas previstas - Saidas previstas`
+
+## Fase 8 — Alertas Internos
+
+Alertas derivados no frontend para vencimentos e tarefas atrasadas.
+
+### Rota
+
+- `/app/alerts`
+
+### Tipos de alertas
+
+- Cobrancas vencidas (invoices pendentes com `due_date < hoje`)
+- Despesas vencidas (expenses pendentes com `due_date < hoje`)
+- Proximos vencimentos (invoices + expenses pendentes entre hoje e hoje + 7 dias)
+- Tarefas atrasadas (tasks `active` com `due_date < hoje`)
+
+### Badge no menu
+
+O menu autenticado exibe um badge com a soma total de alertas ativos.

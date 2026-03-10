@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { generateCurrentMonthInvoices, getFinanceSummary } from '../lib/finance.js'
+import { getAlertCounts } from '../lib/alerts.js'
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
@@ -25,6 +26,11 @@ function FinanceHomePage() {
     overdueTotal: 0,
     upcomingInvoices: [],
   })
+  const [alertSummary, setAlertSummary] = useState({
+    overdueInvoices: 0,
+    overdueExpenses: 0,
+    overdueTasks: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -37,8 +43,16 @@ function FinanceHomePage() {
     setError('')
 
     try {
-      const data = await getFinanceSummary({ ownerId })
+      const [data, alerts] = await Promise.all([
+        getFinanceSummary({ ownerId }),
+        getAlertCounts({ ownerId }),
+      ])
       setSummary(data)
+      setAlertSummary({
+        overdueInvoices: alerts.overdueInvoices,
+        overdueExpenses: alerts.overdueExpenses,
+        overdueTasks: alerts.overdueTasks,
+      })
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -186,6 +200,40 @@ function FinanceHomePage() {
               <p className="text-xs text-slate-500">Saldo previsto</p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
                 {formatCurrency(summary.predictedBalance)}
+              </p>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {!loading ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-slate-900">Resumo de alertas</h3>
+            <Link
+              to="/app/alerts"
+              className="text-sm font-medium text-slate-700 underline"
+            >
+              Ver alertas
+            </Link>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-md border border-slate-200 p-3">
+              <p className="text-xs text-slate-500">Cobrancas vencidas</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {alertSummary.overdueInvoices}
+              </p>
+            </article>
+            <article className="rounded-md border border-slate-200 p-3">
+              <p className="text-xs text-slate-500">Despesas vencidas</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {alertSummary.overdueExpenses}
+              </p>
+            </article>
+            <article className="rounded-md border border-slate-200 p-3">
+              <p className="text-xs text-slate-500">Tarefas atrasadas</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {alertSummary.overdueTasks}
               </p>
             </article>
           </div>
