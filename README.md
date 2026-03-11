@@ -446,3 +446,10 @@ Alertas derivados no frontend para vencimentos e tarefas atrasadas.
 O menu autenticado exibe um badge com a soma total de alertas ativos.
 
 Nota: o badge agora atualiza automaticamente ao trocar de rota, focar a aba e apos acoes relevantes.
+
+## Fase 9 - Etapa 1: Redesign da Login
+
+- Login refeita com base em `docs/design-system-login.md`.
+- Layout split-screen (hero/branding + painel de autenticacao).
+- Paleta azul + preto, sem violeta.
+- Animacoes sutis e hero visual de fluxo implementados.

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,4 +12,129 @@ body,
 
 body {
   @apply m-0 bg-slate-100 text-slate-900 antialiased;
+}
+
+.login-shell {
+  --login-bg-main: #05070d;
+  --login-bg-deep: #09111f;
+  --login-bg-surface: #0f172a;
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    var(--login-bg-main) 0%,
+    var(--login-bg-deep) 45%,
+    var(--login-bg-surface) 100%
+  );
+  color: #f8fafc;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+.login-flow-line {
+  animation: login-flow-motion 18s linear infinite;
+}
+
+.login-glow-pulse {
+  animation: login-glow-pulse 8s ease-in-out infinite;
+}
+
+.login-core-float {
+  animation: login-core-float 8s ease-in-out infinite;
+}
+
+.login-panel-enter {
+  animation: login-panel-enter 440ms cubic-bezier(0.21, 0.98, 0.33, 1) both;
+}
+
+.login-fade-delayed {
+  animation: login-fade-in 480ms ease-out both;
+  animation-delay: 120ms;
+}
+
+.login-button-lift:hover {
+  transform: translateY(-1px);
+}
+
+.login-button-lift:active {
+  transform: scale(0.98);
+}
+
+@keyframes login-flow-motion {
+  0% {
+    transform: translateX(-8%) translateY(0);
+    opacity: 0.24;
+  }
+  50% {
+    transform: translateX(3%) translateY(2px);
+    opacity: 0.52;
+  }
+  100% {
+    transform: translateX(12%) translateY(0);
+    opacity: 0.24;
+  }
+}
+
+@keyframes login-glow-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes login-core-float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes login-panel-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes login-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-flow-line,
+  .login-glow-pulse,
+  .login-core-float,
+  .login-panel-enter,
+  .login-fade-delayed {
+    animation: none !important;
+  }
+
+  .login-button-lift,
+  .login-button-lift:hover,
+  .login-button-lift:active {
+    transform: none;
+    transition: none !important;
+  }
 }
