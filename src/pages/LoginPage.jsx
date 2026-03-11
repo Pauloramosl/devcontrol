@@ -96,18 +96,18 @@ function LoginPage() {
         <section className="order-2 lg:order-1">
           <div className="relative min-h-[280px] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#05070D] via-[#09111F] to-[#0F172A] p-6 shadow-[0_24px_70px_rgba(2,6,23,0.75)] sm:min-h-[320px] sm:p-8 lg:min-h-[calc(100vh-3rem)] lg:p-12">
             <div className="pointer-events-none absolute inset-0">
-              <div className="login-flow-line absolute left-[-12%] top-[22%] h-px w-[140%] bg-gradient-to-r from-transparent via-blue-300/30 to-transparent" />
+              <div className="login-flow-lines absolute left-[-12%] top-[22%] h-px w-[140%] bg-gradient-to-r from-transparent via-blue-300/30 to-transparent" />
               <div
-                className="login-flow-line absolute left-[-18%] top-[44%] h-px w-[145%] rotate-[7deg] bg-gradient-to-r from-transparent via-blue-400/20 to-transparent"
+                className="login-flow-lines absolute left-[-18%] top-[44%] h-px w-[145%] rotate-[7deg] bg-gradient-to-r from-transparent via-blue-400/20 to-transparent"
                 style={{ animationDelay: '-4s' }}
               />
               <div
-                className="login-flow-line absolute left-[-15%] top-[66%] h-px w-[130%] -rotate-[8deg] bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent"
+                className="login-flow-lines absolute left-[-15%] top-[66%] h-px w-[130%] -rotate-[8deg] bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent"
                 style={{ animationDelay: '-8s' }}
               />
-              <div className="login-glow-pulse absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.25)_0%,rgba(34,211,238,0.08)_36%,rgba(0,0,0,0)_72%)]" />
+              <div className="login-glow absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.25)_0%,rgba(34,211,238,0.1)_36%,rgba(0,0,0,0)_70%)]" />
               <div
-                className="login-glow-pulse absolute -bottom-20 right-[-22%] h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.18)_0%,rgba(15,23,42,0.05)_52%,rgba(0,0,0,0)_78%)]"
+                className="login-glow absolute -bottom-20 right-[-22%] h-80 w-80 rounded-full bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.18)_0%,rgba(15,23,42,0.05)_52%,rgba(0,0,0,0)_78%)]"
                 style={{ animationDelay: '-2s' }}
               />
             </div>
@@ -125,13 +125,19 @@ function LoginPage() {
               </p>
             </div>
 
-            <div className="login-core-float relative z-10 mt-8 hidden rounded-3xl border border-blue-200/15 bg-[rgba(15,23,42,0.68)] p-6 backdrop-blur-sm md:block lg:mt-14">
+            <div className="login-hero-enter login-hero-float relative z-10 mt-8 hidden rounded-3xl border border-blue-200/15 bg-[rgba(15,23,42,0.68)] p-6 backdrop-blur-sm md:block lg:mt-14">
               <div className="relative h-44 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85">
-                <div className="absolute left-6 top-10 h-px w-[70%] rotate-6 bg-gradient-to-r from-blue-400/0 via-blue-300/50 to-cyan-300/0" />
-                <div className="absolute left-8 top-24 h-px w-[64%] -rotate-6 bg-gradient-to-r from-cyan-300/0 via-cyan-300/45 to-blue-300/0" />
-                <div className="absolute right-8 top-14 h-3 w-3 rounded-full bg-cyan-300/70 shadow-[0_0_18px_rgba(34,211,238,0.55)]" />
-                <div className="absolute left-14 top-20 h-3 w-3 rounded-full bg-blue-400/70 shadow-[0_0_18px_rgba(96,165,250,0.5)]" />
-                <div className="absolute bottom-7 right-16 h-3 w-3 rounded-full bg-blue-300/70 shadow-[0_0_18px_rgba(147,197,253,0.55)]" />
+                <div className="login-flow-lines absolute left-6 top-10 h-px w-[70%] rotate-6 bg-gradient-to-r from-blue-400/0 via-blue-300/50 to-cyan-300/0" />
+                <div className="login-flow-lines absolute left-8 top-24 h-px w-[64%] -rotate-6 bg-gradient-to-r from-cyan-300/0 via-cyan-300/45 to-blue-300/0" />
+                <div className="login-particle absolute right-8 top-14 h-3 w-3 rounded-full bg-cyan-300/70 shadow-[0_0_18px_rgba(34,211,238,0.55)]" />
+                <div
+                  className="login-particle absolute left-14 top-20 h-3 w-3 rounded-full bg-blue-400/70 shadow-[0_0_18px_rgba(96,165,250,0.5)]"
+                  style={{ animationDelay: '-1.2s' }}
+                />
+                <div
+                  className="login-particle absolute bottom-7 right-16 h-3 w-3 rounded-full bg-blue-300/70 shadow-[0_0_18px_rgba(147,197,253,0.55)]"
+                  style={{ animationDelay: '-2.1s' }}
+                />
               </div>
             </div>
           </div>
