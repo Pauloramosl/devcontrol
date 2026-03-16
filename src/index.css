@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -22,7 +22,7 @@ body {
   background: linear-gradient(
     135deg,
     var(--login-bg-main) 0%,
-    var(--login-bg-deep) 45%,
+    var(--login-bg-deep) 50%,
     var(--login-bg-surface) 100%
   );
   color: #f8fafc;
@@ -33,13 +33,27 @@ body {
   animation: login-flow-lines 20s ease-in-out infinite;
 }
 
-.login-particle {
-  animation: login-particle-pulse 3.6s ease-in-out infinite;
+.login-core-pulse {
+  animation: login-core-pulse 4s ease-in-out infinite;
+  transform-box: fill-box;
   transform-origin: center;
 }
 
-.login-glow {
-  animation: login-glow 8s ease-in-out infinite;
+.login-core-orbit {
+  animation: login-core-orbit 18s linear infinite;
+  transform-box: fill-box;
+}
+
+.login-core-glow {
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25), transparent 70%);
+  opacity: 0.2;
+  animation: login-core-glow 10s ease-in-out infinite;
+}
+
+.login-particle {
+  animation: login-particle-pulse 3.6s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 .login-hero-float {
@@ -48,7 +62,7 @@ body {
 
 .login-hero-enter {
   animation: login-hero-enter 400ms ease-out both;
-  animation-delay: 70ms;
+  animation-delay: 60ms;
 }
 
 .login-panel-enter {
@@ -56,8 +70,7 @@ body {
 }
 
 .login-fade-delayed {
-  animation: login-fade-in 480ms ease-out both;
-  animation-delay: 120ms;
+  animation: login-fade-in 400ms ease-out both;
 }
 
 .login-button-lift:hover {
@@ -68,18 +81,58 @@ body {
   transform: scale(0.98);
 }
 
+.login-primary-button:hover {
+  filter: brightness(1.05);
+}
+
 @keyframes login-flow-lines {
   0% {
-    transform: translateX(-10%);
+    transform: translateX(-8%);
     opacity: 0.22;
   }
   50% {
     transform: translateX(4%);
-    opacity: 0.5;
+    opacity: 0.46;
   }
   100% {
-    transform: translateX(10%);
+    transform: translateX(8%);
     opacity: 0.22;
+  }
+}
+
+@keyframes login-core-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes login-core-orbit {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-core-glow {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0.2;
   }
 }
 
@@ -95,18 +148,6 @@ body {
   100% {
     opacity: 0.6;
     transform: scale(1);
-  }
-}
-
-@keyframes login-glow {
-  0% {
-    opacity: 0.36;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 0.36;
   }
 }
 
@@ -156,13 +197,12 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-flow-lines,
-  .login-particle,
-  .login-glow,
+  .login-core-orbit,
   .login-hero-float,
-  .login-hero-enter,
-  .login-panel-enter,
-  .login-fade-delayed {
+  .login-core-pulse,
+  .login-core-glow,
+  .login-particle,
+  .login-flow-lines {
     animation: none !important;
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -82,7 +82,7 @@ function LoginPage() {
   if (loading) {
     return (
       <main className="login-shell flex min-h-screen items-center justify-center px-4">
-        <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-[rgba(11,18,32,0.84)] p-6 text-center shadow-[0_24px_80px_rgba(2,6,23,0.7)] backdrop-blur-xl">
+        <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-[rgba(11,18,32,0.85)] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-[20px]">
           <span className="mx-auto mb-3 block h-7 w-7 animate-spin rounded-full border-2 border-blue-200/30 border-t-blue-400" />
           <p className="text-sm text-slate-200">Verificando sessão...</p>
         </section>
@@ -105,11 +105,6 @@ function LoginPage() {
                 className="login-flow-lines absolute left-[-15%] top-[66%] h-px w-[130%] -rotate-[8deg] bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent"
                 style={{ animationDelay: '-8s' }}
               />
-              <div className="login-glow absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.25)_0%,rgba(34,211,238,0.1)_36%,rgba(0,0,0,0)_70%)]" />
-              <div
-                className="login-glow absolute -bottom-20 right-[-22%] h-80 w-80 rounded-full bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.18)_0%,rgba(15,23,42,0.05)_52%,rgba(0,0,0,0)_78%)]"
-                style={{ animationDelay: '-2s' }}
-              />
             </div>
 
             <div className="login-fade-delayed relative z-10 max-w-2xl">
@@ -117,34 +112,157 @@ function LoginPage() {
                 DEVCONTROL
               </span>
               <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl lg:text-5xl">
-                O centro de comando do seu negócio digital.
+                O centro de comando do seu negócio digital
               </h1>
               <p className="mt-4 max-w-xl text-sm text-slate-300 sm:text-base">
-                Gerencie operações, acompanhe entregas e tenha visão financeira em uma única
-                plataforma.
+                Gerencie clientes, projetos, finanças e execução em um único sistema.
               </p>
             </div>
 
-            <div className="login-hero-enter login-hero-float relative z-10 mt-8 hidden rounded-3xl border border-blue-200/15 bg-[rgba(15,23,42,0.68)] p-6 backdrop-blur-sm md:block lg:mt-14">
-              <div className="relative h-44 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85">
-                <div className="login-flow-lines absolute left-6 top-10 h-px w-[70%] rotate-6 bg-gradient-to-r from-blue-400/0 via-blue-300/50 to-cyan-300/0" />
-                <div className="login-flow-lines absolute left-8 top-24 h-px w-[64%] -rotate-6 bg-gradient-to-r from-cyan-300/0 via-cyan-300/45 to-blue-300/0" />
-                <div className="login-particle absolute right-8 top-14 h-3 w-3 rounded-full bg-cyan-300/70 shadow-[0_0_18px_rgba(34,211,238,0.55)]" />
-                <div
-                  className="login-particle absolute left-14 top-20 h-3 w-3 rounded-full bg-blue-400/70 shadow-[0_0_18px_rgba(96,165,250,0.5)]"
-                  style={{ animationDelay: '-1.2s' }}
-                />
-                <div
-                  className="login-particle absolute bottom-7 right-16 h-3 w-3 rounded-full bg-blue-300/70 shadow-[0_0_18px_rgba(147,197,253,0.55)]"
-                  style={{ animationDelay: '-2.1s' }}
-                />
+            <div className="login-hero-enter login-hero-float relative z-10 mt-8 lg:mt-14">
+              <div className="relative mx-auto max-w-[460px] overflow-hidden rounded-3xl border border-blue-200/15 bg-[rgba(15,23,42,0.68)] p-6 backdrop-blur-sm sm:p-8">
+                <div className="login-core-glow pointer-events-none absolute inset-0 m-auto h-72 w-72 rounded-full" />
+
+                <svg
+                  viewBox="0 0 320 320"
+                  aria-hidden="true"
+                  className="relative mx-auto h-64 w-full max-w-[340px]"
+                >
+                  <circle cx="160" cy="160" r="116" fill="none" stroke="rgba(148,163,184,0.12)" />
+                  <circle cx="160" cy="160" r="86" fill="none" stroke="rgba(96,165,250,0.14)" />
+
+                  <g className="login-core-orbit" style={{ transformOrigin: '160px 160px' }}>
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="160"
+                      y2="60"
+                      stroke="rgba(96,165,250,0.42)"
+                      strokeWidth="1.5"
+                    />
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="244"
+                      y2="112"
+                      stroke="rgba(96,165,250,0.38)"
+                      strokeWidth="1.5"
+                      style={{ animationDelay: '-2s' }}
+                    />
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="244"
+                      y2="208"
+                      stroke="rgba(34,211,238,0.34)"
+                      strokeWidth="1.5"
+                      style={{ animationDelay: '-4s' }}
+                    />
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="76"
+                      y2="208"
+                      stroke="rgba(96,165,250,0.38)"
+                      strokeWidth="1.5"
+                      style={{ animationDelay: '-6s' }}
+                    />
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="76"
+                      y2="112"
+                      stroke="rgba(34,211,238,0.34)"
+                      strokeWidth="1.5"
+                      style={{ animationDelay: '-8s' }}
+                    />
+                    <line
+                      className="login-flow-lines"
+                      x1="160"
+                      y1="160"
+                      x2="160"
+                      y2="260"
+                      stroke="rgba(96,165,250,0.36)"
+                      strokeWidth="1.5"
+                      style={{ animationDelay: '-10s' }}
+                    />
+
+                    <circle className="login-particle" cx="160" cy="60" r="6" fill="rgba(96,165,250,0.92)" />
+                    <circle
+                      className="login-particle"
+                      cx="244"
+                      cy="112"
+                      r="5.5"
+                      fill="rgba(125,211,252,0.95)"
+                      style={{ animationDelay: '-0.8s' }}
+                    />
+                    <circle
+                      className="login-particle"
+                      cx="244"
+                      cy="208"
+                      r="5.5"
+                      fill="rgba(34,211,238,0.92)"
+                      style={{ animationDelay: '-1.6s' }}
+                    />
+                    <circle
+                      className="login-particle"
+                      cx="76"
+                      cy="208"
+                      r="5.5"
+                      fill="rgba(96,165,250,0.92)"
+                      style={{ animationDelay: '-2.4s' }}
+                    />
+                    <circle
+                      className="login-particle"
+                      cx="76"
+                      cy="112"
+                      r="5.5"
+                      fill="rgba(34,211,238,0.92)"
+                      style={{ animationDelay: '-3.2s' }}
+                    />
+                    <circle
+                      className="login-particle"
+                      cx="160"
+                      cy="260"
+                      r="5.5"
+                      fill="rgba(96,165,250,0.9)"
+                      style={{ animationDelay: '-4s' }}
+                    />
+                  </g>
+
+                  <circle className="login-core-pulse" cx="160" cy="160" r="28" fill="rgba(37,99,235,0.85)" />
+                  <circle cx="160" cy="160" r="14" fill="rgba(125,211,252,0.96)" />
+
+                  <circle className="login-particle" cx="40" cy="76" r="2.2" fill="rgba(148,197,255,0.7)" />
+                  <circle
+                    className="login-particle"
+                    cx="278"
+                    cy="86"
+                    r="2.2"
+                    fill="rgba(125,211,252,0.75)"
+                    style={{ animationDelay: '-1.4s' }}
+                  />
+                  <circle
+                    className="login-particle"
+                    cx="285"
+                    cy="250"
+                    r="2.2"
+                    fill="rgba(96,165,250,0.75)"
+                    style={{ animationDelay: '-2.6s' }}
+                  />
+                </svg>
               </div>
             </div>
           </div>
         </section>
 
         <section className="order-1 flex items-center justify-center lg:order-2">
-          <div className="login-panel-enter w-full max-w-md rounded-2xl border border-[rgba(96,165,250,0.24)] bg-[rgba(11,18,32,0.84)] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.7)] backdrop-blur-xl sm:p-8">
+          <div className="login-panel-enter w-full max-w-md rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(11,18,32,0.85)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-[20px] sm:p-8">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-200/80">
               Central de Acesso
             </p>
@@ -159,7 +277,7 @@ function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading || isEmailLoading}
-              className="login-button-lift mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm font-medium text-slate-100 transition-all duration-200 hover:border-blue-400/30 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="login-button-lift mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-100 transition-all duration-200 hover:border-blue-400/30 hover:bg-slate-800/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isGoogleLoading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -207,7 +325,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={isEmailLoading || isGoogleLoading}
-                className="login-button-lift mt-1 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-blue-900/20 transition-all duration-200 hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="login-button-lift login-primary-button mt-1 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-blue-900/20 transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isEmailLoading ? (
                   <span className="inline-flex items-center gap-2">
@@ -230,9 +348,7 @@ function LoginPage() {
               </p>
             ) : null}
 
-            <p className="mt-5 text-xs text-slate-400">
-              Seu acesso é protegido por autenticação segura.
-            </p>
+            <p className="mt-5 text-xs text-slate-400">Seu acesso é protegido por autenticação segura.</p>
           </div>
         </section>
       </div>
