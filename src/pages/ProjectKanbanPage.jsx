@@ -15,6 +15,11 @@ import {
   updateTask,
 } from '../lib/kanban.js'
 import { getProjectById } from '../lib/projects.js'
+import { Button } from '../components/ui/Button.jsx'
+import { Input } from '../components/ui/Input.jsx'
+import { Badge } from '../components/ui/Badge.jsx'
+import { Select } from '../components/ui/Select.jsx'
+import { AudioTranscriptionButton } from '../components/ui/AudioTranscriptionButton.jsx'
 
 function getDragPayload(event) {
   const raw = event.dataTransfer.getData('text/plain')
@@ -43,18 +48,62 @@ function moveArrayItem(items, fromIndex, toIndex) {
 function formatDateTime(value) {
   if (!value) return '-'
   const date = new Date(value)
-  return date.toLocaleString()
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function formatLogValue(value) {
-  if (!value || typeof value !== 'object') return '-'
+const EVENT_META = {
+  CREATE_TASK: { label: 'Criou tarefa', icon: '＋', color: 'text-dn-success', bg: 'bg-dn-success/10', border: 'border-dn-success/20' },
+  EDIT_TASK: { label: 'Editou tarefa', icon: '✎', color: 'text-dn-accent', bg: 'bg-dn-accent/10', border: 'border-dn-accent/20' },
+  MOVE_TASK: { label: 'Moveu tarefa', icon: '→', color: 'text-dn-warning', bg: 'bg-dn-warning/10', border: 'border-dn-warning/20' },
+  DELETE_TASK: { label: 'Removeu tarefa', icon: '✕', color: 'text-dn-danger', bg: 'bg-dn-danger/10', border: 'border-dn-danger/20' },
+}
 
-  const pairs = Object.entries(value)
-  if (!pairs.length) return '-'
+const FIELD_LABELS = {
+  title: 'Título',
+  description: 'Descrição',
+  priority: 'Prioridade',
+  due_date: 'Prazo',
+  rank: 'Ordem',
+  column_id: 'Coluna',
+}
 
-  return pairs
-    .map(([key, fieldValue]) => `${key}: ${fieldValue ?? '-'}`)
-    .join(' | ')
+const PRIORITY_LABELS = {
+  high: 'Alta',
+  medium: 'Média',
+  low: 'Baixa',
+  '': 'Normal',
+}
+
+function humanizeFieldValue(key, val) {
+  if (val === null || val === undefined || val === '') return '—'
+  if (key === 'priority') return PRIORITY_LABELS[val] ?? val
+  if (key === 'column_id') return 'Outra coluna'
+  if (key === 'rank') return null // Hide rank changes, not meaningful to the user
+  if (key === 'description' && String(val).length > 60) return `${String(val).substring(0, 60)}…`
+  return String(val)
+}
+
+function getLogChanges(log) {
+  const oldVal = log.old_value && typeof log.old_value === 'object' ? log.old_value : {}
+  const newVal = log.new_value && typeof log.new_value === 'object' ? log.new_value : {}
+
+  const allKeys = new Set([...Object.keys(oldVal), ...Object.keys(newVal)])
+  const changes = []
+
+  for (const key of allKeys) {
+    if (key === 'rank') continue
+    const prev = oldVal[key] ?? null
+    const next = newVal[key] ?? null
+    if (String(prev ?? '') === String(next ?? '') && log.event_type !== 'CREATE_TASK') continue
+
+    changes.push({
+      field: FIELD_LABELS[key] ?? key,
+      from: humanizeFieldValue(key, prev),
+      to: humanizeFieldValue(key, next),
+    })
+  }
+
+  return changes
 }
 
 function buildColumnsWithTasks(columns, tasks) {
@@ -104,6 +153,7 @@ function ProjectKanbanPage() {
   })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [logsOpen, setLogsOpen] = useState(false)
 
   const loadKanban = useCallback(async () => {
     if (!ownerId || !projectId) return
@@ -123,7 +173,7 @@ function ProjectKanbanPage() {
         setProject(null)
         setColumns([])
         setLogs([])
-        setError('Projeto nao encontrado.')
+        setError('Projeto não encontrado.')
         return
       }
 
@@ -134,6 +184,24 @@ function ProjectKanbanPage() {
       setError(loadError.message)
     } finally {
       setLoading(false)
+    }
+  }, [ownerId, projectId])
+
+  // Silent reload: re-fetches data without showing the loading skeleton
+  const silentReload = useCallback(async () => {
+    if (!ownerId || !projectId) return
+
+    try {
+      const [columnsData, tasksData, logsData] = await Promise.all([
+        listProjectColumns({ ownerId, projectId }),
+        listProjectTasks({ ownerId, projectId }),
+        listProjectTaskLogs({ ownerId, projectId }),
+      ])
+
+      setColumns(buildColumnsWithTasks(columnsData, tasksData))
+      setLogs(logsData)
+    } catch (_err) {
+      // Silent — background sync only
     }
   }, [ownerId, projectId])
 
@@ -148,7 +216,7 @@ function ProjectKanbanPage() {
 
   const handleCreateColumn = async (event) => {
     event.preventDefault()
-    if (!ownerId || !projectId) return
+    if (!ownerId || !projectId || !newColumnName.trim()) return
 
     setError('')
     setSaving(true)
@@ -172,7 +240,7 @@ function ProjectKanbanPage() {
     if (!ownerId) return
 
     const nextName = window.prompt('Novo nome da coluna:', column.name)
-    if (nextName === null) return
+    if (nextName === null || !nextName.trim()) return
 
     setError('')
     setSaving(true)
@@ -195,7 +263,7 @@ function ProjectKanbanPage() {
     if (!ownerId) return
 
     const confirmed = window.confirm(
-      'Excluir coluna? As tarefas desta coluna serao removidas por cascade.',
+      `Excluir coluna "${column.name}"? As tarefas desta coluna serão removidas definitivamente.`
     )
     if (!confirmed) return
 
@@ -220,7 +288,7 @@ function ProjectKanbanPage() {
 
     const title = String(taskTitlesByColumn[columnId] ?? '').trim()
     if (!title) {
-      setError('Titulo da tarefa e obrigatorio.')
+      setError('Título da tarefa é obrigatório.')
       return
     }
 
@@ -247,6 +315,17 @@ function ProjectKanbanPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleTranscription = (text) => {
+    setEditForm((current) => {
+      const existing = current.description || ''
+      const nextValue = existing ? `${existing} ${text}` : text
+      return {
+        ...current,
+        description: nextValue,
+      }
+    })
   }
 
   const openEditTaskModal = (task) => {
@@ -278,7 +357,7 @@ function ProjectKanbanPage() {
 
     const title = String(editForm.title ?? '').trim()
     if (!title) {
-      setEditError('Titulo da tarefa e obrigatorio.')
+      setEditError('Título da tarefa é obrigatório.')
       return
     }
 
@@ -310,27 +389,66 @@ function ProjectKanbanPage() {
 
   const handleTaskDrop = async (event, targetColumnId, beforeTaskId = null) => {
     event.preventDefault()
+    event.currentTarget.classList.remove('ring-2', 'ring-dn-accent', 'bg-dn-bg-hover')
 
     const payload = getDragPayload(event)
     if (!payload || payload.type !== 'task') return
     event.stopPropagation()
     if (!ownerId) return
 
-    setError('')
-    setSaving(true)
+    const taskId = payload.taskId
 
+    // --- Optimistic UI update: move card instantly in local state ---
+    const previousColumns = columns
+    setColumns((prev) => {
+      const next = prev.map((col) => ({ ...col, tasks: [...col.tasks] }))
+
+      // Find and remove the task from its current column
+      let movedTask = null
+      for (const col of next) {
+        const idx = col.tasks.findIndex((t) => t.id === taskId)
+        if (idx !== -1) {
+          movedTask = col.tasks.splice(idx, 1)[0]
+          break
+        }
+      }
+      if (!movedTask) return prev
+
+      // Insert into target column
+      const targetCol = next.find((col) => col.id === targetColumnId)
+      if (!targetCol) return prev
+
+      movedTask = { ...movedTask, column_id: targetColumnId }
+
+      if (beforeTaskId) {
+        const beforeIdx = targetCol.tasks.findIndex((t) => t.id === beforeTaskId)
+        if (beforeIdx >= 0) {
+          targetCol.tasks.splice(beforeIdx, 0, movedTask)
+        } else {
+          targetCol.tasks.push(movedTask)
+        }
+      } else {
+        targetCol.tasks.push(movedTask)
+      }
+
+      return next
+    })
+
+    // --- Background API call ---
+    setError('')
     try {
       await moveTask({
         ownerId,
-        taskId: payload.taskId,
+        taskId,
         toColumnId: targetColumnId,
         beforeTaskId,
       })
-      await loadKanban()
+      // Silent sync to get correct ranks/logs from server
+      silentReload()
     } catch (moveError) {
+      // Revert on failure
+      setColumns(previousColumns)
       setError(moveError.message)
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -355,9 +473,14 @@ function ProjectKanbanPage() {
 
     const reordered = moveArrayItem(orderedIds, fromIndex, toIndex)
 
-    setError('')
-    setSaving(true)
+    // --- Optimistic UI update: reorder columns instantly ---
+    const previousColumns = columns
+    setColumns((prev) => {
+      const colMap = new Map(prev.map((c) => [c.id, c]))
+      return reordered.map((id) => colMap.get(id)).filter(Boolean)
+    })
 
+    setError('')
     try {
       await reorderProjectColumns({
         ownerId,
@@ -365,31 +488,27 @@ function ProjectKanbanPage() {
         previousOrderedColumnIds: orderedIds,
         orderedColumnIds: reordered,
       })
-      await loadKanban()
+      silentReload()
     } catch (reorderError) {
+      setColumns(previousColumns)
       setError(reorderError.message)
-    } finally {
-      setSaving(false)
     }
   }
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <p className="text-sm text-slate-600">Carregando kanban...</p>
+      <section className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6 animate-dn-shimmer">
+        <p className="text-dn-body text-dn-text-muted">Carregando kanban do projeto...</p>
       </section>
     )
   }
 
   if (!project) {
     return (
-      <section className="rounded-xl border border-red-200 bg-red-50 p-6">
-        <p className="text-sm text-red-700">{error || 'Projeto nao encontrado.'}</p>
-        <Link
-          to="/app/projects"
-          className="mt-3 inline-block rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-700 transition hover:bg-red-100"
-        >
-          Voltar para projetos
+      <section className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-lg p-6">
+        <p className="text-dn-body text-dn-danger">{error || 'Projeto não encontrado.'}</p>
+        <Link to="/app/projects">
+          <Button variant="ghost" className="mt-4 text-dn-danger">Voltar para projetos</Button>
         </Link>
       </section>
     )
@@ -397,64 +516,78 @@ function ProjectKanbanPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* HEADER */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Kanban do Projeto</h2>
-          <p className="text-sm text-slate-600">
-            {project.service_type ?? 'Projeto sem tipo'} | Cliente: {project.client_name}
-          </p>
-          <p className="text-xs text-slate-500">
-            Colunas: {columns.length} | Tasks: {totalTasks}
-          </p>
+          <h2 className="text-[24px] font-semibold text-white tracking-tight flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-dn-accent/20 flex items-center justify-center text-dn-accent">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+             </div>
+             Kanban do Projeto
+          </h2>
+          <div className="flex items-center gap-2 mt-2 text-dn-caption text-dn-text-secondary">
+            <span>{project.service_type ?? 'Projeto sem tipo'}</span>
+            <span className="w-1 h-1 rounded-full bg-dn-text-muted"></span>
+            <span>{project.client_name}</span>
+            <span className="w-1 h-1 rounded-full bg-dn-text-muted"></span>
+            <span className="text-dn-accent">{columns.length} Colunas</span>
+            <span className="w-1 h-1 rounded-full bg-dn-text-muted"></span>
+            <span className="text-white">{totalTasks} Tarefas</span>
+          </div>
         </div>
 
         <div className="flex gap-2">
-          <Link
-            to={`/app/projects/${project.id}`}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
-          >
-            Voltar ao Projeto
+          <Link to={`/app/projects/${project.id}`}>
+            <Button variant="ghost">Voltar ao Projeto</Button>
           </Link>
         </div>
       </div>
 
+      {/* FORMULÁRIO DE NOVA COLUNA */}
       <form
         onSubmit={handleCreateColumn}
-        className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row"
+        className="flex flex-col gap-3 rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-6 shadow-lg sm:flex-row items-end"
       >
-        <input
-          type="text"
-          value={newColumnName}
-          onChange={(event) => setNewColumnName(event.target.value)}
-          placeholder="Nome da nova coluna"
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-        />
-        <button
+        <div className="flex-1 w-full">
+          <label className="block text-dn-label text-dn-text-muted mb-2">NOVA COLUNA DE FLUXO</label>
+          <Input
+            type="text"
+            value={newColumnName}
+            onChange={(event) => setNewColumnName(event.target.value)}
+            placeholder="Ex: Em Andamento, Revisão"
+          />
+        </div>
+        <Button
           type="submit"
-          disabled={saving}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          disabled={saving || !newColumnName.trim()}
+          className="w-full sm:w-auto"
         >
-          Criar Coluna
-        </button>
+          {saving ? 'Criando...' : 'CRIAR COLUNA'}
+        </Button>
       </form>
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>
+        <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] p-4 text-sm text-dn-danger">{error}</p>
       ) : null}
 
+      {/* QUADRO KANBAN */}
       {columns.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-600">Nenhuma coluna criada ainda.</p>
+        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px] opacity-70">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12 text-dn-text-muted mb-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          <p className="text-dn-body text-dn-text-muted">Nenhuma coluna criada ainda.</p>
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-dn-border scrollbar-track-transparent">
           {columns.map((column) => (
             <article
               key={column.id}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleColumnDrop(event, column.id)}
-              className="w-80 min-w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col"
+              className="w-80 min-w-[320px] rounded-[24px] border-[0.5px] border-dn-border bg-dn-bg-card shadow-xl flex flex-col backdrop-blur-md relative overflow-hidden"
             >
+              {/* Subtle top edge glow */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-dn-accent/20 to-transparent"></div>
+              
               <header
                 draggable
                 onDragStart={(event) =>
@@ -463,25 +596,30 @@ function ProjectKanbanPage() {
                     columnId: column.id,
                   })
                 }
-                className="flex items-start justify-between gap-2 cursor-grab"
+                className="flex flex-col gap-2 p-5 pb-3 cursor-grab active:cursor-grabbing border-b-[0.5px] border-dn-border/50 bg-dn-bg-elevated/50"
               >
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{column.name}</h3>
-                  <p className="text-xs text-slate-500">Tarefas: {column.tasks.length}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-dn-body font-bold text-white tracking-wide">{column.name}</h3>
+                    <span className="text-[10px] bg-white/10 text-dn-text-secondary px-2 py-0.5 rounded-full font-mono">{column.tasks.length}</span>
+                  </div>
+                  <div className="flex gap-1 opacity-0 hover:opacity-100 transition-opacity absolute top-5 right-5 group-hover:opacity-100">
+                     {/* Para tornar visível em mobile, seria melhor não depender só do hover, mas no desktop fica mais limpo */}
+                  </div>
                 </div>
 
-                <div className="flex gap-1">
+                <div className="flex gap-2 justify-between w-full mt-2">
                   <button
                     type="button"
                     onClick={() => handleRenameColumn(column)}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100"
+                    className="text-[10px] text-dn-text-muted hover:text-white uppercase tracking-wider font-semibold"
                   >
                     Renomear
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteColumn(column)}
-                    className="rounded-md border border-red-300 bg-white px-2 py-1 text-xs text-red-700 transition hover:bg-red-50"
+                    className="text-[10px] text-dn-danger/70 hover:text-dn-danger uppercase tracking-wider font-semibold"
                   >
                     Excluir
                   </button>
@@ -489,14 +627,20 @@ function ProjectKanbanPage() {
               </header>
 
               <div
-                className="mt-3 flex min-h-24 flex-col gap-2 rounded-lg bg-slate-50 p-2"
-                onDragOver={(event) => event.preventDefault()}
+                className="flex-1 flex flex-col gap-3 p-4 bg-dn-bg-card/50 min-h-[150px] transition-colors rounded-b-[24px]"
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.currentTarget.classList.add('ring-2', 'ring-dn-accent', 'bg-dn-bg-hover');
+                }}
+                onDragLeave={(event) => {
+                  event.currentTarget.classList.remove('ring-2', 'ring-dn-accent', 'bg-dn-bg-hover');
+                }}
                 onDrop={(event) => handleTaskDrop(event, column.id, null)}
               >
                 {column.tasks.length === 0 ? (
-                  <p className="flex min-h-28 flex-1 items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-xs text-slate-500">
-                    Arraste tarefas para esta coluna.
-                  </p>
+                  <div className="flex-1 flex items-center justify-center border border-dashed border-dn-border/50 rounded-xl text-xs text-dn-text-muted p-4 text-center">
+                    Solte tarefas aqui.
+                  </div>
                 ) : (
                   column.tasks.map((task) => (
                     <div
@@ -509,88 +653,201 @@ function ProjectKanbanPage() {
                           type: 'task',
                           taskId: task.id,
                         })
+                        event.currentTarget.classList.add('opacity-50', 'border-dn-accent')
                       }}
-                      onDragOver={(event) => event.preventDefault()}
+                      onDragEnd={(event) => {
+                        event.currentTarget.classList.remove('opacity-50', 'border-dn-accent')
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        event.currentTarget.classList.add('border-dn-accent')
+                      }}
+                      onDragLeave={(event) => {
+                        event.stopPropagation()
+                        event.currentTarget.classList.remove('border-dn-accent')
+                      }}
                       onDrop={(event) => handleTaskDrop(event, column.id, task.id)}
-                      className="rounded-md border border-slate-200 bg-white p-3"
+                      className="group cursor-grab active:cursor-grabbing bg-dn-bg-elevated border-[0.5px] border-dn-border p-4 rounded-xl hover:border-dn-border-hover transition-all shadow-sm flex flex-col gap-3"
                     >
-                      <h4 className="text-sm font-semibold text-slate-900">{task.title}</h4>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Priority: {task.priority ?? '-'} | Due: {task.due_date ?? '-'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => openEditTaskModal(task)}
-                        className="mt-2 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100"
-                      >
-                        Editar task
-                      </button>
+                      <div className="flex justify-between items-start gap-2">
+                         <h4 className="text-dn-body text-white font-medium leading-tight">{task.title}</h4>
+                         {task.priority === 'high' && (
+                           <Badge variant="danger" className="scale-75 origin-top-right whitespace-nowrap">Alta</Badge>
+                         )}
+                         {task.priority === 'medium' && (
+                           <Badge variant="warning" className="scale-75 origin-top-right whitespace-nowrap">Média</Badge>
+                         )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-dn-text-secondary font-mono flex items-center gap-1">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                          {task.due_date ? task.due_date.substring(5) : 'Sem data'}
+                        </span>
+                        
+                        <button
+                          type="button"
+                          onClick={() => openEditTaskModal(task)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-dn-accent font-semibold px-2 py-1 bg-dn-accent/10 rounded-md"
+                        >
+                          Abrir
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
-              </div>
 
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  value={taskTitlesByColumn[column.id] ?? ''}
-                  onChange={(event) =>
-                    setTaskTitlesByColumn((current) => ({
-                      ...current,
-                      [column.id]: event.target.value,
-                    }))
-                  }
-                  placeholder="Nova tarefa (titulo)"
-                  className="w-full rounded-md border border-slate-300 px-2 py-2 text-xs outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleCreateTask(column.id)}
-                  disabled={saving}
-                  className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                >
-                  Add
-                </button>
+                {/* ADD TASK FORM INLINE */}
+                <div className="mt-auto pt-4 flex gap-2">
+                  <Input
+                    type="text"
+                    value={taskTitlesByColumn[column.id] ?? ''}
+                    onChange={(event) =>
+                      setTaskTitlesByColumn((current) => ({
+                        ...current,
+                        [column.id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Nova tarefa..."
+                    className="flex-1 h-9 text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateTask(column.id);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleCreateTask(column.id)}
+                    disabled={saving || !(taskTitlesByColumn[column.id]?.trim())}
+                    className="h-9 px-3"
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
             </article>
           ))}
         </div>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <h3 className="text-lg font-semibold text-slate-900">Atividade</h3>
-        <p className="mt-1 text-sm text-slate-600">Logs de criacao, movimento e edicao de tarefas.</p>
+      {/* LOG DE ATIVIDADES — Collapsible Timeline */}
+      <section className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card shadow-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setLogsOpen(prev => !prev)}
+          className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-dn-text-secondary group-hover:text-dn-accent transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div className="text-left">
+              <h3 className="text-dn-h3 text-white">Histórico de Atividades</h3>
+              <p className="text-xs text-dn-text-muted mt-0.5">
+                {logs.length === 0 ? 'Nenhum evento registrado' : `${logs.length} evento${logs.length !== 1 ? 's' : ''} registrado${logs.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className={`w-5 h-5 text-dn-text-muted transition-transform duration-300 ${logsOpen ? 'rotate-180' : ''}`}
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
 
-        {logs.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">Sem eventos registrados.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {logs.map((log) => (
-              <li key={log.id} className="rounded-md border border-slate-200 p-3">
-                <p className="text-sm font-medium text-slate-800">
-                  {log.event_type} | {log.task_title}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Old: {formatLogValue(log.old_value)}</p>
-                <p className="text-xs text-slate-500">New: {formatLogValue(log.new_value)}</p>
-                <p className="mt-1 text-xs text-slate-400">{formatDateTime(log.created_at)}</p>
-              </li>
-            ))}
-          </ul>
+        {logsOpen && (
+          <div className="border-t-[0.5px] border-dn-border">
+            {logs.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3 text-dn-text-muted">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <p className="text-sm text-dn-text-muted">Nenhuma atividade registrada ainda.</p>
+                <p className="text-xs text-dn-text-muted mt-1">Crie, mova ou edite tarefas para gerar o histórico.</p>
+              </div>
+            ) : (
+              <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-dn-border scrollbar-track-transparent">
+                <div className="relative pl-10 pr-6 py-4">
+                  {/* Timeline vertical line */}
+                  <div className="absolute left-[27px] top-4 bottom-4 w-[1px] bg-gradient-to-b from-dn-border via-dn-border/50 to-transparent"></div>
+
+                  <ul className="space-y-1">
+                    {logs.map((log) => {
+                      const meta = EVENT_META[log.event_type] ?? EVENT_META.EDIT_TASK
+                      const changes = getLogChanges(log)
+
+                      return (
+                        <li key={log.id} className="relative group">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-[22px] top-4 w-5 h-5 rounded-full ${meta.bg} border ${meta.border} flex items-center justify-center text-[9px] ${meta.color} z-10`}>
+                            {meta.icon}
+                          </div>
+
+                          <div className="rounded-xl p-4 hover:bg-white/[0.02] transition-colors">
+                            {/* Header row */}
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`text-xs font-semibold ${meta.color}`}>{meta.label}</span>
+                                <span className="text-xs text-dn-text-muted">·</span>
+                                <span className="text-sm font-medium text-white truncate">{log.task_title}</span>
+                              </div>
+                              <span className="text-[10px] text-dn-text-muted whitespace-nowrap font-mono">
+                                {formatDateTime(log.created_at)}
+                              </span>
+                            </div>
+
+                            {/* Changes as diff pills */}
+                            {changes.length > 0 && (
+                              <div className="mt-2.5 flex flex-wrap gap-2">
+                                {changes.map((change, i) => (
+                                  <div key={i} className="flex items-center gap-1.5 text-[11px] bg-white/[0.03] border-[0.5px] border-white/5 rounded-lg px-2.5 py-1.5">
+                                    <span className="text-dn-text-muted font-medium">{change.field}</span>
+                                    {log.event_type !== 'CREATE_TASK' && change.from && (
+                                      <>
+                                        <span className="text-dn-text-muted/50 line-through">{change.from}</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-dn-text-muted/30 flex-shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                      </>
+                                    )}
+                                    <span className="text-white">{change.to}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </section>
 
-      {editingTask ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-          <div className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-xl font-semibold text-slate-900">Editar task</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Atualize os campos da tarefa e salve para registrar no log.
+      {/* MODAL EDITAR TASK */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-xl rounded-[24px] bg-dn-bg-card border-[0.5px] border-dn-border p-8 shadow-2xl relative overflow-hidden">
+            {/* Modal header accent */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-dn-accent"></div>
+            
+            <h3 className="text-2xl font-bold text-white tracking-tight">Editar Tarefa</h3>
+            <p className="mt-1 text-dn-body text-dn-text-secondary">
+              Atualize as informações da tarefa. Estas ações são auditadas.
             </p>
 
-            <form onSubmit={handleSaveTaskEdit} className="mt-4 space-y-4">
-              <label className="block text-sm text-slate-700">
-                Title *
-                <input
+            <form onSubmit={handleSaveTaskEdit} className="mt-8 space-y-5">
+              <div>
+                <label className="block text-dn-label text-dn-text-muted mb-2">TÍTULO *</label>
+                <Input
                   type="text"
                   value={editForm.title}
                   onChange={(event) =>
@@ -600,12 +857,17 @@ function ProjectKanbanPage() {
                     }))
                   }
                   required
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                 />
-              </label>
+              </div>
 
-              <label className="block text-sm text-slate-700">
-                Description
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-dn-label text-dn-text-muted">DESCRIÇÃO</label>
+                  <AudioTranscriptionButton
+                    onTranscription={handleTranscription}
+                    placeholderText="Transcrever descrição por voz"
+                  />
+                </div>
                 <textarea
                   value={editForm.description}
                   onChange={(event) =>
@@ -615,14 +877,14 @@ function ProjectKanbanPage() {
                     }))
                   }
                   rows={4}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  className="w-full bg-dn-bg-elevated border-[0.5px] border-dn-border rounded-dn-md px-4 py-3 text-dn-body text-white outline-none focus:border-dn-accent/50 focus:ring-1 focus:ring-dn-accent/50 transition-all resize-none"
                 />
-              </label>
+              </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  Priority
-                  <select
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-dn-label text-dn-text-muted mb-2">PRIORIDADE</label>
+                  <Select
                     value={editForm.priority}
                     onChange={(event) =>
                       setEditForm((current) => ({
@@ -630,18 +892,17 @@ function ProjectKanbanPage() {
                         priority: event.target.value,
                       }))
                     }
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   >
-                    <option value="">-</option>
-                    <option value="low">low</option>
-                    <option value="medium">medium</option>
-                    <option value="high">high</option>
-                  </select>
-                </label>
+                    <option value="">Normal</option>
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta (Urgente)</option>
+                  </Select>
+                </div>
 
-                <label className="block text-sm text-slate-700">
-                  Due date
-                  <input
+                <div>
+                  <label className="block text-dn-label text-dn-text-muted mb-2">DATA DE ENTREGA (PRAZO)</label>
+                  <Input
                     type="date"
                     value={editForm.due_date}
                     onChange={(event) =>
@@ -650,38 +911,36 @@ function ProjectKanbanPage() {
                         due_date: event.target.value,
                       }))
                     }
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   />
-                </label>
+                </div>
               </div>
 
-              {editError ? (
-                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {editError && (
+                <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-4 py-3 text-dn-body text-dn-danger">
                   {editError}
                 </p>
-              ) : null}
+              )}
 
-              <div className="flex justify-end gap-2">
-                <button
+              <div className="flex justify-end gap-3 pt-6 border-t-[0.5px] border-dn-border mt-8">
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={closeEditTaskModal}
                   disabled={editSaving}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={editSaving}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {editSaving ? 'Salvando...' : 'Salvar'}
-                </button>
+                  {editSaving ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                </Button>
               </div>
             </form>
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   )
 }

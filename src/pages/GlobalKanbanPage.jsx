@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { loadGlobalKanbanData } from '../lib/globalKanban.js'
 import { moveTask } from '../lib/kanban.js'
+import { Input } from '../components/ui/Input.jsx'
+import { Select } from '../components/ui/Select.jsx'
+import { Button } from '../components/ui/Button.jsx'
+import { Badge } from '../components/ui/Badge.jsx'
 
 const PRIORITY_ORDER = {
   high: 0,
@@ -47,9 +51,10 @@ function matchesPriority(task, priority) {
   return String(task.priority ?? '').toLowerCase() === priority
 }
 
-function isOverdue(task, todayIso) {
+function isOverdue(task, todayIso, columnName) {
   if (!task?.due_date) return false
   if (task.status !== 'active') return false
+  if (columnName && columnName.toLowerCase().includes('conclu')) return false
   return task.due_date < todayIso
 }
 
@@ -83,6 +88,12 @@ function sortTasks(tasks, orderBy) {
 
 function formatProjectTitle(project) {
   return project.service_type ?? 'Projeto sem tipo'
+}
+
+function getPriorityBadgeVariant(priority) {
+  if (priority === 'high') return 'danger';
+  if (priority === 'medium') return 'warning';
+  return 'active'; // low ou outro
 }
 
 function GlobalKanbanPage() {
@@ -193,7 +204,7 @@ function GlobalKanbanPage() {
             if (task.project_id !== project.id) return false
             if (!matchesText(task, filters.search)) return false
             if (!matchesPriority(task, filters.priority)) return false
-            if (filters.overdueOnly && !isOverdue(task, todayIso)) return false
+            if (filters.overdueOnly && !isOverdue(task, todayIso, column.name)) return false
             return true
           })
 
@@ -244,6 +255,9 @@ function GlobalKanbanPage() {
     event.preventDefault()
     event.stopPropagation()
 
+    // Efeito visual no target (limpar o hover effect se estivesse ativo)
+    event.currentTarget.classList.remove('bg-dn-bg-hover')
+
     const payload = getDragPayload(event)
     if (!payload || payload.type !== 'task') return
     if (!ownerId) return
@@ -252,23 +266,62 @@ function GlobalKanbanPage() {
     setError('')
 
     if (payload.projectId !== targetProjectId) {
-      setInfoMessage('Nao e permitido mover task para colunas de outro projeto no Kanban Global.')
+      setInfoMessage('Não é permitido mover task para colunas de outro projeto no Kanban Global.')
       return
     }
 
-    setSaving(true)
+    const taskId = payload.taskId
+
+    // --- Optimistic UI update: move task instantly in local state ---
+    const previousTasks = tasks
+    setTasks((prev) => {
+      const next = [...prev]
+      const taskIdx = next.findIndex((t) => t.id === taskId)
+      if (taskIdx === -1) return prev
+
+      // Update column_id on the task
+      next[taskIdx] = { ...next[taskIdx], column_id: targetColumnId }
+
+      // If beforeTaskId, adjust rank to sort before that task
+      if (beforeTaskId) {
+        const beforeTask = next.find((t) => t.id === beforeTaskId)
+        if (beforeTask) {
+          // Set a rank just before the target task so sortTasks places it correctly
+          const beforeRank = beforeTask.rank
+          next[taskIdx] = { ...next[taskIdx], rank: beforeRank.substring(0, beforeRank.length - 1) }
+        }
+      } else {
+        // Move to end — set rank after the last task in that column
+        const colTasks = next
+          .filter((t) => t.column_id === targetColumnId && t.id !== taskId)
+          .sort((a, b) => a.rank.localeCompare(b.rank))
+        const lastRank = colTasks.length > 0 ? colTasks[colTasks.length - 1].rank : 'U'
+        next[taskIdx] = { ...next[taskIdx], rank: lastRank + '~' }
+      }
+
+      return next
+    })
+
+    // --- Background API call ---
     try {
       await moveTask({
         ownerId,
-        taskId: payload.taskId,
+        taskId,
         toColumnId: targetColumnId,
         beforeTaskId,
       })
-      await loadData()
+      // Silent sync to get correct ranks from server
+      try {
+        const data = await loadGlobalKanbanData({ ownerId })
+        setTasks(data.tasks)
+        setColumns(data.columns)
+      } catch (_syncErr) {
+        // Background sync failure is non-critical
+      }
     } catch (moveError) {
+      // Revert on failure
+      setTasks(previousTasks)
       setError(moveError.message)
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -287,26 +340,25 @@ function GlobalKanbanPage() {
     <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Kanban Global</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Visao agregada por projeto com swimlanes e drag-and-drop de tasks.
+          <h2 className="text-dn-h2 text-white">Kanban Global</h2>
+          <p className="mt-1 text-dn-body text-dn-text-secondary">
+            Visão agregada por projeto com swimlanes e drag-and-drop de tasks.
           </p>
         </div>
 
-        <button
-          type="button"
+        <Button
           onClick={loadData}
           disabled={loading || saving}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+          variant="ghost"
         >
-          {loading ? 'Atualizando...' : 'Atualizar dados'}
-        </button>
+          {loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}
+        </Button>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3 xl:grid-cols-6">
-        <label className="block text-sm text-slate-700 xl:col-span-2">
-          Busca (title/description)
-          <input
+      <div className="grid gap-4 bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-xl p-6 md:grid-cols-3 xl:grid-cols-6">
+        <div className="xl:col-span-2">
+          <label className="block text-dn-label text-dn-text-muted mb-2">BUSCA</label>
+          <Input
             type="text"
             value={filters.search}
             onChange={(event) =>
@@ -315,14 +367,13 @@ function GlobalKanbanPage() {
                 search: event.target.value,
               }))
             }
-            placeholder="Buscar task..."
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="Título ou descrição"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Cliente
-          <select
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">CLIENTE</label>
+          <Select
             value={filters.clientId}
             onChange={(event) =>
               setFilters((current) => ({
@@ -330,20 +381,19 @@ function GlobalKanbanPage() {
                 clientId: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="all">Todos</option>
+            <option value="all" className="bg-dn-bg-elevated text-dn-text-primary">Todos</option>
             {clients.map((client) => (
-              <option key={client.id} value={client.id}>
+              <option key={client.id} value={client.id} className="bg-dn-bg-elevated text-dn-text-primary">
                 {client.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Projeto
-          <select
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">PROJETO</label>
+          <Select
             value={filters.projectId}
             onChange={(event) =>
               setFilters((current) => ({
@@ -351,20 +401,19 @@ function GlobalKanbanPage() {
                 projectId: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="all">Todos</option>
+            <option value="all" className="bg-dn-bg-elevated text-dn-text-primary">Todos</option>
             {projectOptions.map((project) => (
-              <option key={project.id} value={project.id}>
+              <option key={project.id} value={project.id} className="bg-dn-bg-elevated text-dn-text-primary">
                 {formatProjectTitle(project)}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Prioridade
-          <select
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">PRIORIDADE</label>
+          <Select
             value={filters.priority}
             onChange={(event) =>
               setFilters((current) => ({
@@ -372,18 +421,17 @@ function GlobalKanbanPage() {
                 priority: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="all">Todas</option>
-            <option value="high">high</option>
-            <option value="medium">medium</option>
-            <option value="low">low</option>
-          </select>
-        </label>
+            <option value="all" className="bg-dn-bg-elevated text-dn-text-primary">Todas</option>
+            <option value="high" className="bg-dn-bg-elevated text-dn-text-primary">Alta</option>
+            <option value="medium" className="bg-dn-bg-elevated text-dn-text-primary">Média</option>
+            <option value="low" className="bg-dn-bg-elevated text-dn-text-primary">Baixa</option>
+          </Select>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Ordenacao
-          <select
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">ORDENAÇÃO</label>
+          <Select
             value={filters.orderBy}
             onChange={(event) =>
               setFilters((current) => ({
@@ -391,115 +439,116 @@ function GlobalKanbanPage() {
                 orderBy: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="rank">Por rank</option>
-            <option value="due_date">Por vencimento</option>
-            <option value="priority">Por prioridade</option>
-          </select>
-        </label>
+            <option value="rank" className="bg-dn-bg-elevated text-dn-text-primary">Por rank</option>
+            <option value="due_date" className="bg-dn-bg-elevated text-dn-text-primary">Por vencimento</option>
+            <option value="priority" className="bg-dn-bg-elevated text-dn-text-primary">Por prioridade</option>
+          </Select>
+        </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={filters.overdueOnly}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                overdueOnly: event.target.checked,
-              }))
-            }
-            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-          />
-          Apenas atrasadas
-        </label>
+        <div className="flex items-center gap-4 xl:col-span-6 mt-2">
+          <label className="flex items-center gap-2 text-dn-body text-dn-text-primary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.overdueOnly}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  overdueOnly: event.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded border-dn-border bg-dn-bg-card checked:bg-dn-accent focus:ring-dn-accent"
+            />
+            Apenas tarefas atrasadas
+          </label>
+
+          <Button variant="ghost" className="text-xs h-7 ml-auto" onClick={clearFilters}>Limpar Filtros</Button>
+        </div>
       </div>
 
-      <div>
-        <button
-          type="button"
-          onClick={clearFilters}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
-        >
-          Limpar filtros
-        </button>
-      </div>
 
-      {saving ? (
-        <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-          Salvando movimento...
-        </p>
-      ) : null}
 
       {infoMessage ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <p className="bg-dn-warning-bg border-[0.5px] border-dn-warning/30 rounded-dn-md p-3 text-dn-body text-dn-warning">
           {infoMessage}
         </p>
       ) : null}
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        <p className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-md p-3 text-dn-body text-dn-danger">
+          {error}
+        </p>
       ) : null}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-600">Carregando kanban global...</p>
+        <div className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6 animate-dn-shimmer">
+          <p className="text-dn-body text-dn-text-muted">Carregando kanban global...</p>
         </div>
       ) : null}
 
       {!loading && swimlanes.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-600">Nenhum projeto encontrado com os filtros atuais.</p>
+        <div className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-10 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-dn-bg-elevated flex items-center justify-center text-dn-text-muted mb-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+          </div>
+          <h3 className="text-dn-h3 text-white mb-1">Nenhum projeto encontrado</h3>
+          <p className="text-dn-body text-dn-text-secondary">Tente ajustar seus filtros para ver as tarefas.</p>
         </div>
       ) : null}
 
       {!loading &&
         swimlanes.map((project) => (
-          <article key={project.id} className="rounded-xl border border-slate-200 bg-white p-4">
-            <header className="flex flex-wrap items-center justify-between gap-2">
+          <article key={project.id} className="border-b-[0.5px] border-dn-border pb-6 mb-6 last:border-b-0 last:pb-0 last:mb-0">
+            <header className="flex flex-wrap items-center justify-between gap-2 mb-4 bg-dn-bg-card/30 p-4 rounded-dn-lg border-[0.5px] border-dn-border/50 backdrop-blur-sm">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">{formatProjectTitle(project)}</h3>
-                <p className="text-sm text-slate-600">Cliente: {project.client_name}</p>
-                <p className="text-xs text-slate-500">Tasks filtradas: {project.filtered_task_count}</p>
+                <h3 className="text-dn-h3 text-white">{formatProjectTitle(project)}</h3>
+                <p className="text-dn-caption text-dn-text-secondary mt-0.5">
+                  Cliente: <span className="text-dn-text-primary">{project.client_name}</span> | Tarefas filtradas: <span className="text-dn-text-primary">{project.filtered_task_count}</span>
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <Link
-                  to={`/app/projects/${project.id}/kanban`}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
-                >
-                  Abrir kanban do projeto
+                <Link to={`/app/projects/${project.id}/kanban`}>
+                  <Button variant="ghost" className="h-8 text-xs">Abrir Kanban de Projeto</Button>
                 </Link>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  className="h-8 text-xs"
                   onClick={() => toggleProject(project.id)}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
                 >
-                  {collapsedByProject[project.id] ? 'Mostrar' : 'Ocultar'}
-                </button>
+                  {collapsedByProject[project.id] ? 'Mostrar Raia' : 'Ocultar Raia'}
+                </Button>
               </div>
             </header>
 
             {!collapsedByProject[project.id] ? (
               project.columns.length === 0 ? (
-                <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                  Este projeto ainda nao possui colunas no kanban.
+                <p className="bg-dn-bg-elevated border-[0.5px] border-dn-border rounded-dn-md p-4 text-dn-body text-dn-text-muted">
+                  Este projeto ainda não possui colunas no kanban.
                 </p>
               ) : (
-                <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
                   {project.columns.map((column) => (
                     <div
                       key={column.id}
-                      className="w-72 min-w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                      className="w-[320px] min-w-[320px] rounded-dn-lg border-[0.5px] border-dn-border bg-dn-bg-elevated flex flex-col max-h-[700px]"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-sm font-semibold text-slate-900">{column.name}</h4>
-                        <span className="text-xs text-slate-500">{column.tasks.length} tasks</span>
+                      <div className="flex items-center justify-between gap-2 p-3 border-b-[0.5px] border-dn-border bg-dn-bg-card/40 rounded-t-dn-lg">
+                        <h4 className="text-dn-body font-semibold text-white tracking-wide">{column.name}</h4>
+                        <span className="bg-dn-bg-hover text-dn-caption text-dn-text-primary px-2 py-0.5 rounded-full border-[0.5px] border-dn-border">
+                          {column.tasks.length}
+                        </span>
                       </div>
 
                       <div
-                        className="mt-3 flex min-h-24 flex-col gap-2 rounded-lg bg-slate-50 p-2"
-                        onDragOver={(event) => event.preventDefault()}
+                        className="flex-1 p-3 overflow-y-auto hide-scrollbar flex flex-col gap-3 transition-dn"
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.currentTarget.classList.add('bg-dn-bg-hover');
+                        }}
+                        onDragLeave={(event) => {
+                          event.currentTarget.classList.remove('bg-dn-bg-hover');
+                        }}
                         onDrop={(event) =>
                           handleTaskDrop({
                             event,
@@ -510,9 +559,9 @@ function GlobalKanbanPage() {
                         }
                       >
                         {column.tasks.length === 0 ? (
-                          <p className="flex min-h-16 items-center justify-center rounded-md border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
-                            Solte tasks aqui.
-                          </p>
+                          <div className="flex min-h-[100px] items-center justify-center rounded-dn-md border-[1px] border-dashed border-dn-border text-dn-caption text-dn-text-muted bg-dn-bg-card/20">
+                            Solte as tarefas aqui
+                          </div>
                         ) : (
                           column.tasks.map((task) => (
                             <div
@@ -525,24 +574,42 @@ function GlobalKanbanPage() {
                                   projectId: task.project_id,
                                 })
                               }
-                              onDragOver={(event) => event.preventDefault()}
-                              onDrop={(event) =>
+                              onDragOver={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation(); // Evita que o dragOver da coluna pisque
+                                event.currentTarget.classList.add('border-dn-accent');
+                              }}
+                              onDragLeave={(event) => {
+                                event.currentTarget.classList.remove('border-dn-accent');
+                              }}
+                              onDrop={(event) => {
+                                event.currentTarget.classList.remove('border-dn-accent');
                                 handleTaskDrop({
                                   event,
                                   targetProjectId: project.id,
                                   targetColumnId: column.id,
                                   beforeTaskId: task.id,
-                                })
-                              }
-                              className="cursor-grab rounded-md border border-slate-200 bg-white p-3"
+                                });
+                              }}
+                              className="cursor-grab active:cursor-grabbing rounded-dn-md border-[0.5px] border-dn-border bg-dn-bg-card p-3 shadow-lg hover:border-dn-border-hover transition-colors relative group"
                             >
-                              <h5 className="text-sm font-semibold text-slate-900">{task.title}</h5>
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="text-dn-body font-semibold text-white pr-4 leading-snug">{task.title}</h5>
+                                {task.priority && (
+                                  <Badge variant={getPriorityBadgeVariant(task.priority)} className="text-[9px] px-1.5 py-0">
+                                    {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                                  </Badge>
+                                )}
+                              </div>
+
                               {task.description ? (
-                                <p className="mt-1 line-clamp-2 text-xs text-slate-600">{task.description}</p>
+                                <p className="mb-3 line-clamp-2 text-dn-caption text-dn-text-secondary leading-relaxed">{task.description}</p>
                               ) : null}
-                              <p className="mt-2 text-xs text-slate-500">
-                                Priority: {task.priority ?? '-'} | Due: {task.due_date ?? '-'}
-                              </p>
+
+                              <div className="flex items-center justify-between text-[10px] text-dn-text-muted font-mono uppercase mt-auto pt-2 border-t-[0.5px] border-dn-border/50">
+                                <span>{task.due_date ? `PRAZO: ${task.due_date}` : 'SEM PRAZO'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">☰</span>
+                              </div>
                             </div>
                           ))
                         )}

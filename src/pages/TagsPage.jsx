@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createTag, deleteTag, listTags } from '../lib/tags.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { Button } from '../components/ui/Button.jsx'
+import { Input } from '../components/ui/Input.jsx'
 
 function TagsPage() {
   const { user } = useAuth()
@@ -37,7 +39,7 @@ function TagsPage() {
     setError('')
 
     if (!newTagName.trim()) {
-      setError('Nome da tag e obrigatorio.')
+      setError('Nome da tag é obrigatório.')
       return
     }
 
@@ -72,64 +74,78 @@ function TagsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-slate-900">Tags</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Gerencie tags para uso nos filtros e no detalhe de clientes.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
+        <div>
+          <h2 className="text-[24px] font-semibold text-white tracking-tight flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-dn-accent/20 flex items-center justify-center text-dn-accent">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            </div>
+            Tags
+          </h2>
+          <p className="mt-1 text-dn-body text-dn-text-secondary">
+            Gerencie tags para uso nos filtros e no detalhe de clientes.
+          </p>
+        </div>
       </div>
 
       <form
         onSubmit={handleCreateTag}
-        className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row"
+        className="flex flex-col sm:flex-row gap-3 bg-dn-bg-elevated border-[0.5px] border-dn-border p-4 rounded-dn-xl items-center"
       >
-        <input
-          type="text"
-          value={newTagName}
-          onChange={(event) => setNewTagName(event.target.value)}
-          placeholder="Nome da tag"
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-        />
-        <button
+        <div className="flex-1 w-full">
+          <Input
+            type="text"
+            value={newTagName}
+            onChange={(event) => setNewTagName(event.target.value)}
+            placeholder="Nome da tag"
+            className="w-full"
+          />
+        </div>
+        <Button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="w-full sm:w-auto h-11"
         >
           {saving ? 'Salvando...' : 'Adicionar Tag'}
-        </button>
+        </Button>
       </form>
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>
+        <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] p-4 text-sm text-dn-danger">{error}</p>
       ) : null}
 
       {loading ? (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-          Carregando tags...
-        </p>
+        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 animate-dn-shimmer text-center">
+          <p className="text-dn-body text-dn-text-muted">Carregando tags...</p>
+        </div>
       ) : null}
 
       {!loading && !error && tags.length === 0 ? (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-          Nenhuma tag cadastrada.
-        </p>
+        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-12 text-center opacity-70">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12 text-dn-text-muted mx-auto mb-4"><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+          <p className="text-dn-body text-dn-text-muted">Nenhuma tag cadastrada.</p>
+        </div>
       ) : null}
 
       {!loading && !error && tags.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {tags.map((tag) => (
             <li
               key={tag.id}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-dn-lg border-[0.5px] border-dn-border bg-dn-bg-card px-4 py-3 shadow-lg transition-dn hover:border-dn-border-hover group"
             >
-              <span className="text-sm text-slate-800">{tag.name}</span>
-              <button
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-dn-accent/50 group-hover:bg-dn-accent transition-colors"></span>
+                <span className="text-dn-body font-medium text-white">{tag.name}</span>
+              </div>
+              <Button
                 type="button"
+                variant="danger"
                 onClick={() => handleDeleteTag(tag.id)}
-                className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50"
+                className="px-3 py-1.5 h-auto text-xs"
               >
                 Remover
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
