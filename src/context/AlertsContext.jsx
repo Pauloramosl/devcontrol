@@ -10,6 +10,7 @@ const EMPTY_COUNTS = {
   overdueExpenses: 0,
   upcomingInvoices: 0,
   upcomingExpenses: 0,
+  overdueTasks: 0,
   total: 0,
 }
 

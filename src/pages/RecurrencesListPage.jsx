@@ -7,20 +7,11 @@ import {
   generateCurrentMonthInvoices,
   listRecurrences,
 } from '../lib/finance.js'
-import { Button } from '../components/ui/Button.jsx'
-import { Badge } from '../components/ui/Badge.jsx'
 
 const RECURRENCE_STATUS_LABELS = {
   active: 'Ativo',
   paused: 'Pausado',
   canceled: 'Cancelado',
-}
-
-function getBadgeVariant(status) {
-  if (status === 'active') return 'success'
-  if (status === 'canceled') return 'danger'
-  if (status === 'paused') return 'warning'
-  return 'neutral'
 }
 
 function formatCurrency(value) {
@@ -64,7 +55,7 @@ function RecurrencesListPage() {
   const handleDeleteRecurrence = async (recurrence) => {
     if (!ownerId) return
 
-    const confirmed = window.confirm(`Excluir recorrência do cliente "${recurrence.client_name}"?`)
+    const confirmed = window.confirm(`Excluir recorrencia do cliente "${recurrence.client_name}"?`)
     if (!confirmed) return
 
     setSaving(true)
@@ -94,7 +85,7 @@ function RecurrencesListPage() {
     try {
       const result = await generateCurrentMonthInvoices({ ownerId })
       setResultMessage(
-        `Mês ${result.referenceMonth}: ${result.createdCount} cobrança(s) criada(s), ${result.skippedCount} ignorada(s).`,
+        `Mes ${result.referenceMonth}: ${result.createdCount} cobranca(s) criada(s), ${result.skippedCount} ignorada(s).`,
       )
       refreshAlerts()
     } catch (generateError) {
@@ -106,118 +97,97 @@ function RecurrencesListPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[24px] font-semibold text-white tracking-tight flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-dn-accent/20 flex items-center justify-center text-dn-accent">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </div>
-            Recorrências
-          </h2>
-          <p className="mt-1 text-dn-body text-dn-text-secondary">Gestão de contratos recorrentes por cliente.</p>
+          <h2 className="text-2xl font-semibold text-slate-900">Recorrencias</h2>
+          <p className="mt-1 text-sm text-slate-600">Gestao de contratos recorrentes por cliente.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Link to="/app/finance">
-            <Button variant="ghost">Voltar para Financeiro</Button>
+        <div className="flex gap-2">
+          <Link
+            to="/app/finance"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+          >
+            Voltar para Financeiro
           </Link>
-          <Button
+          <button
             type="button"
-            variant="outline"
             onClick={handleGenerateCurrentMonth}
             disabled={saving}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
           >
-            {saving ? 'Gerando...' : 'Gerar mês atual'}
-          </Button>
-          <Link to="/app/finance/recurrences/new">
-            <Button>Nova recorrência</Button>
+            {saving ? 'Gerando...' : 'Gerar mes atual'}
+          </button>
+          <Link
+            to="/app/finance/recurrences/new"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
+            Nova recorrencia
           </Link>
         </div>
       </div>
 
       {loading ? (
-        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 animate-dn-shimmer text-center">
-          <p className="text-dn-body text-dn-text-muted">Carregando recorrências...</p>
-        </div>
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          Carregando recorrencias...
+        </p>
       ) : null}
 
       {error ? (
-        <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] p-4 text-sm text-dn-danger">{error}</p>
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>
       ) : null}
 
       {resultMessage ? (
-        <p className="rounded-dn-md border-[0.5px] border-dn-success/50 bg-[#10241A] p-4 text-sm text-dn-success">{resultMessage}</p>
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+          {resultMessage}
+        </p>
       ) : null}
 
       {!loading && !error && recurrences.length === 0 ? (
-        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-12 text-center opacity-70">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12 text-dn-text-muted mx-auto mb-4"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-          <p className="text-dn-body text-dn-text-muted">Nenhuma recorrência cadastrada.</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-600">Nenhuma recorrencia cadastrada.</p>
         </div>
       ) : null}
 
       {!loading && !error && recurrences.length > 0 ? (
-        <div className="grid gap-4">
+        <ul className="space-y-3">
           {recurrences.map((recurrence) => (
-            <article
+            <li
               key={recurrence.id}
-              className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all hover:border-dn-border-hover relative overflow-hidden group"
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
             >
-              {recurrence.status === 'active' && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-dn-success"></div>
-              )}
-              {recurrence.status === 'canceled' && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-dn-danger"></div>
-              )}
-              {recurrence.status === 'paused' && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-dn-warning"></div>
-              )}
-
-              <div className="flex-1 ml-2">
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-lg font-bold text-white">{recurrence.client_name}</h3>
-                  <Badge variant={getBadgeVariant(recurrence.status)}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{recurrence.client_name}</h3>
+                  <p className="text-sm text-slate-600">
+                    Valor: {formatCurrency(recurrence.value)} | Dia do vencimento: {recurrence.due_day}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Inicio: {recurrence.start_date} | Status:{' '}
                     {RECURRENCE_STATUS_LABELS[recurrence.status] ?? recurrence.status}
-                  </Badge>
+                  </p>
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-dn-body text-dn-text-secondary">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Valor</span>
-                    <span className="font-mono text-white text-lg">{formatCurrency(recurrence.value)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Dia do vencimento</span>
-                    <span className="font-medium text-white">{recurrence.due_day}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Início</span>
-                    <span className="font-medium text-white">{recurrence.start_date ? recurrence.start_date.split('-').reverse().join('/') : '-'}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-end gap-3 bg-dn-bg-elevated p-4 rounded-dn-lg border-[0.5px] border-dn-border w-full md:w-auto">
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Link to={`/app/finance/recurrences/${recurrence.id}`} className="flex-1 sm:flex-none">
-                    <Button variant="outline" className="w-full">
-                      Editar
-                    </Button>
+                <div className="flex gap-2">
+                  <Link
+                    to={`/app/finance/recurrences/${recurrence.id}`}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+                  >
+                    Editar
                   </Link>
-                  <Button
+                  <button
                     type="button"
-                    variant="danger"
                     onClick={() => handleDeleteRecurrence(recurrence)}
                     disabled={saving}
-                    className="flex-1 sm:flex-none"
+                    className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
                   >
                     Excluir
-                  </Button>
+                  </button>
                 </div>
               </div>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : null}
     </section>
   )

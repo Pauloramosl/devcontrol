@@ -9,10 +9,6 @@ import {
   listFinanceClients,
   updateRecurrence,
 } from '../lib/finance.js'
-import { Input } from '../components/ui/Input.jsx'
-import { Select } from '../components/ui/Select.jsx'
-import { Button } from '../components/ui/Button.jsx'
-import { AudioTranscriptionButton } from '../components/ui/AudioTranscriptionButton.jsx'
 
 const EMPTY_FORM = {
   client_id: '',
@@ -114,22 +110,11 @@ function RecurrenceFormPage() {
     }))
   }
 
-  const handleTranscription = (name, text) => {
-    setFormData((current) => {
-      const existing = current[name] || ''
-      const nextValue = existing ? `${existing} ${text}` : text
-      return {
-        ...current,
-        [name]: nextValue,
-      }
-    })
-  }
-
   const handleSubmit = async (event) => {
     event.preventDefault()
 
     if (!ownerId) {
-      setError('Sessão inválida. Faça login novamente.')
+      setError('Sessao invalida. Faca login novamente.')
       return
     }
 
@@ -137,7 +122,7 @@ function RecurrenceFormPage() {
     const dueDayNumber = Number.parseInt(formData.due_day, 10)
 
     if (!formData.client_id) {
-      setError('Cliente é obrigatório.')
+      setError('Cliente e obrigatorio.')
       return
     }
 
@@ -147,7 +132,7 @@ function RecurrenceFormPage() {
     }
 
     if (!formData.start_date) {
-      setError('Data de início é obrigatória.')
+      setError('Data de inicio e obrigatoria.')
       return
     }
 
@@ -203,53 +188,49 @@ function RecurrenceFormPage() {
 
   if (loading) {
     return (
-      <section className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6 animate-dn-shimmer">
-        <p className="text-dn-body text-dn-text-muted">Carregando formulário de recorrência...</p>
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <p className="text-sm text-slate-600">Carregando formulário de recorrência...</p>
       </section>
     )
   }
 
   return (
-    <section className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-[28px] font-bold text-white tracking-tight">{pageTitle}</h2>
-          <p className="text-dn-body text-dn-text-secondary mt-1">
-            {isEditMode ? 'Edite os dados desta receita recorrente.' : 'Cadastre um novo plano ou serviço de assinatura mensal.'}
-          </p>
-        </div>
-        <Link to="/app/finance/recurrences">
-          <Button variant="ghost">Voltar para Recorrências</Button>
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-2xl font-semibold text-slate-900">{pageTitle}</h2>
+        <Link
+          to="/app/finance/recurrences"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+        >
+          Voltar para Recorrências
         </Link>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-6 rounded-[32px] border-[0.5px] border-dn-border bg-dn-bg-card p-8 md:grid-cols-2 shadow-2xl relative overflow-hidden"
+        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2"
       >
-        {/* Subtle top edge glow */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-dn-accent/20 to-transparent"></div>
-
-        <div className="md:col-span-2">
-          <label className="block text-dn-label text-dn-text-muted mb-2">CLIENTE VINCULADO *</label>
-          <Select
+        <label className="block text-sm text-slate-700 md:col-span-2">
+          Cliente *
+          <select
             name="client_id"
             value={formData.client_id}
             onChange={handleChange}
             required
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="">Selecione o cliente...</option>
+            <option value="">Selecione...</option>
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
                 {client.name}
               </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">VALOR MENSAL (R$) *</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Valor *
+          <input
             type="number"
             name="value"
             value={formData.value}
@@ -257,24 +238,25 @@ function RecurrenceFormPage() {
             required
             min="0.01"
             step="0.01"
-            placeholder="0.00"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">DATA DE INÍCIO *</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Data de início *
+          <input
             type="date"
             name="start_date"
             value={formData.start_date}
             onChange={handleChange}
             required
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">DIA DO VENCIMENTO *</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Dia do vencimento *
+          <input
             type="number"
             name="due_day"
             value={formData.due_day}
@@ -282,67 +264,62 @@ function RecurrenceFormPage() {
             required
             min="1"
             max="31"
-            placeholder="Ex: 5"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">STATUS</label>
-          <Select
+        <label className="block text-sm text-slate-700">
+          Status
+          <select
             name="status"
             value={formData.status}
             onChange={handleChange}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
             {RECURRENCE_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {RECURRENCE_STATUS_LABELS[status] ?? status}
               </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </label>
 
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-dn-label text-dn-text-muted">OBSERVAÇÕES (OPCIONAL)</label>
-            <AudioTranscriptionButton
-              onTranscription={(text) => handleTranscription('notes', text)}
-              placeholderText="Transcrever observações por voz"
-            />
-          </div>
+        <label className="block text-sm text-slate-700 md:col-span-2">
+          Observacoes
           <textarea
             name="notes"
             value={formData.notes}
             onChange={handleChange}
             rows={4}
-            className="w-full bg-dn-bg-elevated border-[0.5px] border-dn-border rounded-dn-md px-4 py-3 text-dn-body text-white outline-none focus:border-dn-accent/50 focus:ring-1 focus:ring-dn-accent/50 transition-all resize-none"
-            placeholder="Detalhes sobre a assinatura, escopo recorrente, etc."
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
         {error ? (
-          <div className="md:col-span-2 rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-4 py-3 text-dn-body text-dn-danger">
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 md:col-span-2">
             {error}
-          </div>
+          </p>
         ) : null}
 
-        <div className="md:col-span-2 pt-6 border-t-[0.5px] border-dn-border mt-4 flex flex-wrap gap-4 justify-end">
+        <div className="flex flex-wrap gap-2 md:col-span-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+
           {isEditMode ? (
-            <Button
+            <button
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="bg-transparent border border-dn-danger text-dn-danger hover:bg-dn-danger/10 shadow-none mr-auto"
+              className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
             >
-              Excluir Recorrência
-            </Button>
+              Excluir
+            </button>
           ) : null}
-          
-          <Button
-            type="submit"
-            disabled={saving}
-          >
-            {saving ? 'SALVANDO...' : (isEditMode ? 'SALVAR ALTERAÇÕES' : 'CRIAR RECORRÊNCIA')}
-          </Button>
         </div>
       </form>
     </section>

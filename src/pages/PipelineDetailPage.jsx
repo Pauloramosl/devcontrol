@@ -9,8 +9,6 @@ import {
   renamePipelineColumn,
   reorderPipelineColumns,
 } from '../lib/pipelines.js'
-import { Button } from '../components/ui/Button.jsx'
-import { Input } from '../components/ui/Input.jsx'
 
 function getDragPayload(event) {
   const raw = event.dataTransfer.getData('text/plain')
@@ -76,8 +74,6 @@ function PipelineDetailPage() {
     event.preventDefault()
     if (!ownerId || !pipelineId) return
 
-    if (!newColumnName.trim()) return;
-
     setSaving(true)
     setError('')
 
@@ -122,7 +118,7 @@ function PipelineDetailPage() {
   const handleDeleteColumn = async (column) => {
     if (!ownerId) return
 
-    const confirmed = window.confirm(`Tem certeza que deseja excluir a coluna "${column.name}"?`)
+    const confirmed = window.confirm(`Excluir coluna "${column.name}" do pipeline?`)
     if (!confirmed) return
 
     setSaving(true)
@@ -171,7 +167,6 @@ function PipelineDetailPage() {
 
   const handleDropOnColumn = async (event, targetColumnId) => {
     event.preventDefault()
-    event.currentTarget.classList.remove('border-dn-accent', 'bg-dn-bg-hover')
 
     const payload = getDragPayload(event)
     if (!payload || payload.type !== 'pipeline-column') return
@@ -189,7 +184,6 @@ function PipelineDetailPage() {
 
   const handleDropToEnd = async (event) => {
     event.preventDefault()
-    event.currentTarget.classList.remove('border-dn-accent', 'bg-dn-bg-hover')
 
     const payload = getDragPayload(event)
     if (!payload || payload.type !== 'pipeline-column') return
@@ -205,153 +199,127 @@ function PipelineDetailPage() {
 
   if (loading) {
     return (
-      <section className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6">
-        <p className="text-dn-body text-dn-text-muted animate-dn-shimmer">Carregando detalhes do pipeline...</p>
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <p className="text-sm text-slate-600">Carregando pipeline...</p>
       </section>
     )
   }
 
   if (!pipeline) {
     return (
-      <section className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-lg p-6">
-        <p className="text-dn-body text-dn-danger">{error || 'Pipeline não encontrado.'}</p>
-        <div className="mt-4">
-          <Link to="/app/pipelines">
-            <Button variant="ghost" className="text-dn-danger">Voltar para pipelines</Button>
-          </Link>
-        </div>
+      <section className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-6">
+        <p className="text-sm text-red-700">{error || 'Pipeline nao encontrado.'}</p>
+        <Link
+          to="/app/pipelines"
+          className="inline-block rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-700 transition hover:bg-red-100"
+        >
+          Voltar para pipelines
+        </Link>
       </section>
     )
   }
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-[24px] font-semibold text-white tracking-tight">{pipeline.name}</h2>
-          <p className="text-dn-body text-dn-text-secondary mt-1">Gerencie as colunas do template e sua ordem no Kanban.</p>
+          <h2 className="text-2xl font-semibold text-slate-900">{pipeline.name}</h2>
+          <p className="text-sm text-slate-600">Gerencie as colunas do template e sua ordem.</p>
         </div>
 
-        <div className="flex gap-2">
-          <Link to="/app/pipelines">
-            <Button variant="ghost">Voltar</Button>
-          </Link>
-        </div>
+        <Link
+          to="/app/pipelines"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+        >
+          Voltar
+        </Link>
       </div>
 
-      {/* FORMULÁRIO DE NOVA COLUNA */}
       <form
         onSubmit={handleCreateColumn}
-        className="flex flex-col sm:flex-row gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg items-end"
+        className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row"
       >
-        <div className="flex-1 w-full">
-          <label className="block text-dn-label text-dn-text-muted mb-2">NOVA COLUNA</label>
-          <Input
-            type="text"
-            value={newColumnName}
-            onChange={(event) => setNewColumnName(event.target.value)}
-            placeholder="Ex: Backlog, Em Andamento, Concluído"
-          />
-        </div>
-        <Button
+        <input
+          type="text"
+          value={newColumnName}
+          onChange={(event) => setNewColumnName(event.target.value)}
+          placeholder="Nome da coluna"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+        />
+        <button
           type="submit"
-          disabled={saving || !newColumnName.trim()}
-          className="w-full sm:w-auto"
+          disabled={saving}
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {saving ? 'CRIANDO...' : 'CRIAR COLUNA'}
-        </Button>
+          Criar Coluna
+        </button>
       </form>
 
-      {saving && (
-        <p className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-md p-3 text-dn-body text-dn-text-muted animate-pulse">
-          Salvando alterações...
+      {saving ? (
+        <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+          Salvando alteracoes...
         </p>
-      )}
+      ) : null}
 
-      {error && (
-        <p className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-md p-3 text-dn-body text-dn-danger">
-          {error}
-        </p>
-      )}
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>
+      ) : null}
 
-      {/* LISTA DE COLUNAS (DRAG AND DROP) */}
-      <div className="bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
-        <h3 className="text-dn-h3 text-white mb-4">Ordem das Colunas</h3>
-        
-        {columns.length === 0 ? (
-          <p className="text-dn-body text-dn-text-muted py-4">Nenhuma coluna cadastrada neste pipeline.</p>
-        ) : (
-          <ul className="space-y-3">
-            {columns.map((column) => (
-              <li
-                key={column.id}
-                draggable
-                onDragStart={(event) =>
-                  setDragPayload(event, {
-                    type: 'pipeline-column',
-                    columnId: column.id,
-                  })
-                }
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  event.currentTarget.classList.add('border-dn-accent', 'bg-dn-bg-hover');
-                }}
-                onDragLeave={(event) => {
-                  event.currentTarget.classList.remove('border-dn-accent', 'bg-dn-bg-hover');
-                }}
-                onDrop={(event) => handleDropOnColumn(event, column.id)}
-                className="flex cursor-grab active:cursor-grabbing items-center justify-between gap-4 rounded-dn-md border-[0.5px] border-dn-border bg-dn-bg-elevated p-4 hover:border-dn-border-hover transition-colors shadow-sm"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="cursor-move text-dn-text-muted hover:text-white">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg>
-                  </div>
-                  <div>
-                    <p className="text-dn-body font-semibold text-white">{column.name}</p>
-                    <p className="text-[10px] uppercase text-dn-text-muted mt-0.5">Posição: {column.column_order}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleRenameColumn(column)}
-                    disabled={saving}
-                    className="h-8 text-xs px-3"
-                  >
-                    Renomear
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleDeleteColumn(column)}
-                    disabled={saving}
-                    className="h-8 text-xs px-3 text-dn-danger hover:text-dn-danger border-dn-danger/30 hover:bg-dn-danger/10"
-                  >
-                    Excluir
-                  </Button>
-                </div>
-              </li>
-            ))}
-
-            {/* DROP TARGET NO FINAL */}
+      {columns.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-600">Nenhuma coluna cadastrada neste pipeline.</p>
+        </div>
+      ) : (
+        <ul className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+          {columns.map((column) => (
             <li
-              onDragOver={(event) => {
-                event.preventDefault()
-                event.currentTarget.classList.add('border-dn-accent', 'bg-dn-bg-hover')
-              }}
-              onDragLeave={(event) => {
-                event.currentTarget.classList.remove('border-dn-accent', 'bg-dn-bg-hover')
-              }}
-              onDrop={handleDropToEnd}
-              className="rounded-dn-md border-[1px] border-dashed border-dn-border bg-transparent p-4 text-center text-dn-caption text-dn-text-muted transition-colors mt-4"
+              key={column.id}
+              draggable
+              onDragStart={(event) =>
+                setDragPayload(event, {
+                  type: 'pipeline-column',
+                  columnId: column.id,
+                })
+              }
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => handleDropOnColumn(event, column.id)}
+              className="flex cursor-grab flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3"
             >
-              Solte aqui para mover a coluna para o final
+              <div>
+                <p className="text-sm font-medium text-slate-900">{column.name}</p>
+                <p className="text-xs text-slate-500">Ordem: {column.column_order}</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleRenameColumn(column)}
+                  disabled={saving}
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                >
+                  Renomear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteColumn(column)}
+                  disabled={saving}
+                  className="rounded-md border border-red-300 bg-white px-2 py-1 text-xs text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+                >
+                  Excluir
+                </button>
+              </div>
             </li>
-          </ul>
-        )}
-      </div>
+          ))}
+
+          <li
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDropToEnd}
+            className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-center text-xs text-slate-500"
+          >
+            Solte aqui para mover a coluna para o final
+          </li>
+        </ul>
+      )}
     </section>
   )
 }

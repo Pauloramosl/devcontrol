@@ -8,10 +8,6 @@ import {
   markExpenseAsPaid,
   markExpenseAsPending,
 } from '../lib/finance.js'
-import { Button } from '../components/ui/Button.jsx'
-import { Badge } from '../components/ui/Badge.jsx'
-import { Input } from '../components/ui/Input.jsx'
-import { Select } from '../components/ui/Select.jsx'
 
 const EXPENSE_STATUS_LABELS = {
   all: 'Todas',
@@ -32,11 +28,11 @@ function getExpenseStatusLabel(status) {
   return EXPENSE_STATUS_LABELS[status] ?? status
 }
 
-function getBadgeVariant(status) {
-  if (status === 'paid') return 'success'
-  if (status === 'overdue') return 'danger'
-  if (status === 'pending') return 'warning'
-  return 'neutral'
+function statusColor(status) {
+  if (status === 'paid') return 'bg-emerald-100 text-emerald-800'
+  if (status === 'overdue') return 'bg-red-100 text-red-800'
+  if (status === 'pending') return 'bg-amber-100 text-amber-800'
+  return 'bg-slate-100 text-slate-700'
 }
 
 function ExpensesListPage() {
@@ -145,167 +141,159 @@ function ExpensesListPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[24px] font-semibold text-white tracking-tight flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-dn-accent/20 flex items-center justify-center text-dn-accent">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </div>
-            Despesas
-          </h2>
-          <p className="mt-1 text-dn-body text-dn-text-secondary">Contas a pagar com status e filtros básicos.</p>
+          <h2 className="text-2xl font-semibold text-slate-900">Despesas</h2>
+          <p className="mt-1 text-sm text-slate-600">Contas a pagar com status e filtros básicos.</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/app/finance">
-            <Button variant="ghost">Voltar para Financeiro</Button>
+          <Link
+            to="/app/finance"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+          >
+            Voltar para Financeiro
           </Link>
-          <Link to="/app/finance/expenses/new">
-            <Button>Nova despesa</Button>
+          <Link
+            to="/app/finance/expenses/new"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
+            Nova despesa
           </Link>
         </div>
       </div>
 
       <form
         onSubmit={handleApplyFilters}
-        className="grid gap-4 rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-6 shadow-lg md:grid-cols-4 items-end"
+        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
       >
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">STATUS</label>
-          <Select
+        <label className="block text-sm text-slate-700">
+          Status
+          <select
             value={statusInput}
             onChange={(event) => setStatusInput(event.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
             {EXPENSE_FILTER_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {getExpenseStatusLabel(status)}
               </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">BUSCA POR DESCRIÇÃO</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Busca por descrição
+          <input
             type="text"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Ex: internet"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">CATEGORIA</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Categoria
+          <input
             type="text"
             value={categoryInput}
             onChange={(event) => setCategoryInput(event.target.value)}
             placeholder="Ex: Operacional"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
         <div className="flex items-end gap-2">
-          <Button type="submit" className="flex-1">
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
             Aplicar
-          </Button>
-          <Button type="button" variant="ghost" onClick={handleResetFilters}>
+          </button>
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+          >
             Limpar
-          </Button>
+          </button>
         </div>
       </form>
 
-      {error ? (
-        <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] p-4 text-sm text-dn-danger">{error}</p>
+      {loading ? (
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          Carregando despesas...
+        </p>
       ) : null}
 
-      {loading ? (
-        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 animate-dn-shimmer text-center">
-          <p className="text-dn-body text-dn-text-muted">Carregando despesas...</p>
-        </div>
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>
       ) : null}
 
       {!loading && !error && expenses.length === 0 ? (
-        <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-12 text-center opacity-70">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12 text-dn-text-muted mx-auto mb-4"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-          <p className="text-dn-body text-dn-text-muted">Nenhuma despesa encontrada com os filtros atuais.</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-600">Nenhuma despesa encontrada.</p>
         </div>
       ) : null}
 
       {!loading && !error && expenses.length > 0 ? (
-        <div className="grid gap-4">
+        <ul className="space-y-3">
           {expenses.map((expense) => {
-            const canMarkAsPaid = expense.display_status === 'pending' || expense.display_status === 'overdue'
+            const canMarkAsPaid =
+              expense.display_status === 'pending' || expense.display_status === 'overdue'
             const canMarkAsPending = expense.status === 'paid'
 
             return (
-              <article key={expense.id} className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all hover:border-dn-border-hover relative overflow-hidden group">
-                {expense.display_status === 'overdue' && (
-                  <div className="absolute top-0 left-0 w-1 h-full bg-dn-danger"></div>
-                )}
-                {expense.display_status === 'paid' && (
-                  <div className="absolute top-0 left-0 w-1 h-full bg-dn-success"></div>
-                )}
-                {expense.display_status === 'pending' && (
-                  <div className="absolute top-0 left-0 w-1 h-full bg-dn-warning"></div>
-                )}
-
-                <div className="flex-1 ml-2">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-white">{expense.description}</h3>
-                    <Badge variant={getBadgeVariant(expense.display_status)}>
-                      {getExpenseStatusLabel(expense.display_status)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-dn-body text-dn-text-secondary">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Valor</span>
-                      <span className="font-mono text-white text-lg">{formatCurrency(expense.value)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Vencimento</span>
-                      <span className="font-medium text-white">{expense.due_date ? expense.due_date.split('-').reverse().join('/') : '-'}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-wider text-dn-text-muted">Categoria</span>
-                      <span className="font-medium text-white">{expense.category ?? '-'}</span>
+              <li key={expense.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">{expense.description}</h3>
+                    <p className="text-sm text-slate-600">
+                      Valor: {formatCurrency(expense.value)} | Vencimento: {expense.due_date}
+                    </p>
+                    <p className="text-xs text-slate-500">Categoria: {expense.category ?? '-'}</p>
+                    <div className="mt-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${statusColor(expense.display_status)}`}
+                      >
+                        {getExpenseStatusLabel(expense.display_status)}
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-col sm:flex-row items-end gap-3 bg-dn-bg-elevated p-4 rounded-dn-lg border-[0.5px] border-dn-border w-full md:w-auto">
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <Link to={`/app/finance/expenses/${expense.id}`} className="flex-1 sm:flex-none">
-                      <Button variant="outline" className="w-full">
-                        Editar
-                      </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/app/finance/expenses/${expense.id}`}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+                    >
+                      Editar
                     </Link>
                     {canMarkAsPaid ? (
-                      <Button
+                      <button
                         type="button"
                         onClick={() => handleMarkAsPaid(expense.id)}
                         disabled={savingExpenseId === expense.id}
-                        className="flex-1 sm:flex-none whitespace-nowrap bg-dn-success text-black hover:bg-dn-success/90"
+                        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                       >
                         {savingExpenseId === expense.id ? 'Salvando...' : 'Marcar como paga'}
-                      </Button>
+                      </button>
                     ) : null}
                     {canMarkAsPending ? (
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
                         onClick={() => handleMarkAsPending(expense.id)}
                         disabled={savingExpenseId === expense.id}
-                        className="flex-1 sm:flex-none whitespace-nowrap"
+                        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
                       >
                         {savingExpenseId === expense.id ? 'Salvando...' : 'Marcar como pendente'}
-                      </Button>
+                      </button>
                     ) : null}
                   </div>
                 </div>
-              </article>
+              </li>
             )
           })}
-        </div>
+        </ul>
       ) : null}
     </section>
   )

@@ -3,14 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { deleteClient, getClientById, setClientTags } from '../lib/clients.js'
 import { listTags } from '../lib/tags.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Button } from '../components/ui/Button.jsx'
-import { Badge } from '../components/ui/Badge.jsx'
-
-const CLIENT_STATUS_LABELS = {
-  active: 'Ativo',
-  paused: 'Pausado',
-  closed: 'Encerrado',
-}
 
 function ClientDetailPage() {
   const { id } = useParams()
@@ -48,7 +40,7 @@ function ClientDetailPage() {
         if (!mounted) return
 
         if (!clientData) {
-          setError('Cliente não encontrado.')
+          setError('Cliente nao encontrado.')
           return
         }
 
@@ -101,9 +93,6 @@ function ClientDetailPage() {
       const refreshedClient = await getClientById({ ownerId, clientId: id })
       setClient(refreshedClient)
       setTagSuccess('Tags atualizadas com sucesso.')
-      
-      // Auto-hide success message after 3s
-      setTimeout(() => setTagSuccess(''), 3000)
     } catch (saveError) {
       setTagError(saveError.message)
     } finally {
@@ -114,7 +103,7 @@ function ClientDetailPage() {
   const handleDeleteClient = async () => {
     if (!ownerId || !id) return
 
-    const confirmed = window.confirm('Tem certeza que deseja excluir este cliente?')
+    const confirmed = window.confirm('Excluir cliente?')
     if (!confirmed) return
 
     setDeleteError('')
@@ -131,164 +120,155 @@ function ClientDetailPage() {
 
   if (loading) {
     return (
-      <section className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6">
-        <p className="text-dn-body text-dn-text-muted animate-dn-shimmer">Carregando detalhes do cliente...</p>
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <p className="text-sm text-slate-600">Carregando detalhes do cliente...</p>
       </section>
     )
   }
 
   if (error) {
     return (
-      <section className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-lg p-6">
-        <p className="text-dn-body text-dn-danger">{error}</p>
-        <div className="mt-4">
-          <Link to="/app/clients">
-            <Button variant="ghost" className="text-dn-danger">Voltar para clientes</Button>
-          </Link>
-        </div>
+      <section className="rounded-xl border border-red-200 bg-red-50 p-6">
+        <p className="text-sm text-red-700">{error}</p>
+        <Link
+          to="/app/clients"
+          className="mt-3 inline-block rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-700 transition hover:bg-red-100"
+        >
+          Voltar para clientes
+        </Link>
       </section>
     )
   }
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-dn-bg-card border-[0.5px] border-dn-border p-6 rounded-dn-xl shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-[24px] font-semibold text-white tracking-tight">{client.name}</h2>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-dn-body text-dn-text-secondary">Status:</span>
-            <Badge variant={client.status === 'active' || client.status === 'ativo' ? 'active' : 'warning'} className="uppercase">
-              {CLIENT_STATUS_LABELS[client.status] ?? client.status}
-            </Badge>
-          </div>
+          <h2 className="text-2xl font-semibold text-slate-900">{client.name}</h2>
+          <p className="text-sm text-slate-600">Status: {client.status}</p>
         </div>
 
         <div className="flex gap-2">
-          <Link to={`/app/clients/${client.id}/edit`}>
-            <Button variant="ghost">Editar</Button>
+          <Link
+            to={`/app/clients/${client.id}/edit`}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+          >
+            Editar
           </Link>
-          <Link to="/app/clients">
-            <Button variant="ghost">Voltar</Button>
+          <Link
+            to="/app/clients"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+          >
+            Voltar
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-6 rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 md:grid-cols-2 shadow-lg">
-        <div className="flex flex-col bg-dn-bg-elevated p-4 rounded-dn-md border-[0.5px] border-dn-border">
-          <span className="text-dn-caption text-dn-text-muted uppercase tracking-wider mb-1">Email</span>
-          <span className="text-dn-body font-medium text-white">{client.email ?? 'Não informado'}</span>
-        </div>
-        <div className="flex flex-col bg-dn-bg-elevated p-4 rounded-dn-md border-[0.5px] border-dn-border">
-          <span className="text-dn-caption text-dn-text-muted uppercase tracking-wider mb-1">Telefone</span>
-          <span className="text-dn-body font-medium text-white">{client.phone ?? 'Não informado'}</span>
-        </div>
-        <div className="flex flex-col bg-dn-bg-elevated p-4 rounded-dn-md border-[0.5px] border-dn-border">
-          <span className="text-dn-caption text-dn-text-muted uppercase tracking-wider mb-1">Empresa</span>
-          <span className="text-dn-body font-medium text-white">{client.company ?? 'Não informado'}</span>
-        </div>
-        <div className="flex flex-col bg-dn-bg-elevated p-4 rounded-dn-md border-[0.5px] border-dn-border">
-          <span className="text-dn-caption text-dn-text-muted uppercase tracking-wider mb-1">Documento</span>
-          <span className="text-dn-body font-medium text-white">{client.document_number ?? 'Não informado'}</span>
-        </div>
-        <div className="flex flex-col bg-dn-bg-elevated p-4 rounded-dn-md border-[0.5px] border-dn-border md:col-span-2">
-          <span className="text-dn-caption text-dn-text-muted uppercase tracking-wider mb-1">Notas Internas</span>
-          <p className="text-dn-body text-dn-text-secondary whitespace-pre-wrap">{client.notes ?? 'Sem notas adicionais'}</p>
-        </div>
+      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2">
+        <p className="text-sm text-slate-700">
+          <strong>Email:</strong> {client.email ?? 'Nao informado'}
+        </p>
+        <p className="text-sm text-slate-700">
+          <strong>Telefone:</strong> {client.phone ?? 'Nao informado'}
+        </p>
+        <p className="text-sm text-slate-700">
+          <strong>Empresa:</strong> {client.company ?? 'Nao informado'}
+        </p>
+        <p className="text-sm text-slate-700">
+          <strong>Documento:</strong> {client.document_number ?? 'Nao informado'}
+        </p>
+        <p className="text-sm text-slate-700 md:col-span-2">
+          <strong>Notas:</strong> {client.notes ?? 'Sem notas'}
+        </p>
       </div>
 
-      {/* GESTÃO DE TAGS */}
-      <div className="rounded-dn-xl border-[0.5px] border-dn-border bg-dn-bg-card p-8 shadow-lg">
-        <h3 className="text-dn-h3 text-white">Tags do Cliente</h3>
-        <p className="mt-1 text-dn-body text-dn-text-secondary">
-          Associe ou remova tags para filtrar este cliente na listagem.
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <h3 className="text-lg font-semibold text-slate-900">Tags do Cliente</h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Associe ou remova tags para filtrar clientes na listagem.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-2 pb-6 border-b-[0.5px] border-dn-border">
+        <div className="mt-4 flex flex-wrap gap-2">
           {client.tags.length === 0 ? (
-            <span className="text-dn-body text-dn-text-muted">Nenhuma tag associada atualmente.</span>
+            <span className="text-sm text-slate-500">Cliente sem tags.</span>
           ) : (
             client.tags.map((tag) => (
-              <Badge key={tag.id} variant="premium" className="px-3 py-1 text-xs">
+              <span key={tag.id} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                 {tag.name}
-              </Badge>
+              </span>
             ))
           )}
         </div>
 
         {tags.length === 0 ? (
-          <div className="mt-6 rounded-md border-[0.5px] border-dn-border bg-dn-bg-elevated px-4 py-3 text-dn-body text-dn-text-muted">
-            Nenhuma tag cadastrada no sistema.{' '}
-            <Link to="/app/tags" className="font-medium text-dn-accent hover:text-white transition-colors">
-              Gerenciar tags
+          <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            Nenhuma tag cadastrada.{' '}
+            <Link to="/app/tags" className="font-medium underline">
+              Criar tags
             </Link>
           </div>
         ) : (
-          <div className="mt-6">
-            <h4 className="text-dn-body font-medium text-white mb-4">Selecione as tags aplicáveis:</h4>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {tags.map((tag) => (
                 <label
                   key={tag.id}
-                  className="flex items-center gap-3 rounded-dn-md border-[0.5px] border-dn-border bg-dn-bg-elevated px-4 py-3 cursor-pointer hover:bg-dn-bg-hover transition-colors"
+                  className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
                 >
                   <input
                     type="checkbox"
                     checked={selectedTagSet.has(tag.id)}
                     onChange={() => handleToggleTag(tag.id)}
-                    className="h-4 w-4 rounded border-dn-border bg-dn-bg-card checked:bg-dn-accent focus:ring-dn-accent"
+                    className="h-4 w-4"
                   />
-                  <span className="text-dn-body text-dn-text-primary">{tag.name}</span>
+                  {tag.name}
                 </label>
               ))}
             </div>
 
-            <div className="mt-6 flex items-center gap-4">
-              <Button
+            <div className="mt-4">
+              <button
                 type="button"
                 onClick={handleSaveTags}
                 disabled={savingTags}
-                className="bg-dn-accent hover:bg-dn-accent/90 text-white"
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                {savingTags ? 'SALVANDO...' : 'SALVAR TAGS'}
-              </Button>
-
-              {tagSuccess && (
-                <span className="text-dn-body text-dn-success animate-pulse">{tagSuccess}</span>
-              )}
+                {savingTags ? 'Salvando tags...' : 'Salvar Tags'}
+              </button>
             </div>
-          </div>
+          </>
         )}
 
         {tagError ? (
-          <p className="mt-4 rounded-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-4 py-3 text-dn-body text-dn-danger">
+          <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {tagError}
+          </p>
+        ) : null}
+
+        {tagSuccess ? (
+          <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+            {tagSuccess}
           </p>
         ) : null}
       </div>
 
-      {/* ZONA DE PERIGO */}
-      <div className="rounded-dn-xl border-[0.5px] border-dn-danger/30 bg-dn-danger-bg p-8 dn-ambient-container dn-ambient-red">
-        <h3 className="text-dn-h3 text-dn-danger flex items-center gap-2">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-           Zona de Perigo: Excluir Cliente
-        </h3>
-        <p className="mt-2 text-dn-body text-dn-text-secondary max-w-2xl">
-          Esta ação remove o cliente e dados relacionados por cascade. Essa exclusão <strong>não pode ser desfeita</strong>.
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <h3 className="text-lg font-semibold text-slate-900">Excluir Cliente</h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Esta acao remove o cliente e dados relacionados por cascade.
         </p>
 
-        <div className="mt-6">
-          <Button
-            type="button"
-            onClick={handleDeleteClient}
-            disabled={deletingClient}
-            className="bg-transparent border border-dn-danger text-dn-danger hover:bg-dn-danger/10 hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)]"
-          >
-            {deletingClient ? 'EXCLUINDO...' : 'EXCLUIR CLIENTE DEFINITIVAMENTE'}
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={handleDeleteClient}
+          disabled={deletingClient}
+          className="mt-4 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+        >
+          {deletingClient ? 'Excluindo cliente...' : 'Excluir cliente'}
+        </button>
 
         {deleteError ? (
-          <p className="mt-4 rounded-md bg-[#161B26] border-[0.5px] border-dn-danger/50 p-3 text-dn-body text-dn-danger">
+          <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {deleteError}
           </p>
         ) : null}

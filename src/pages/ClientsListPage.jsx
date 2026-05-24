@@ -1,35 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { CLIENT_STATUSES, listClients } from '../lib/clients.js'
 import { listTags } from '../lib/tags.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Input } from '../components/ui/Input.jsx'
-import { Select } from '../components/ui/Select.jsx'
-import { Button } from '../components/ui/Button.jsx'
-import { Badge } from '../components/ui/Badge.jsx'
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, TableActionCell } from '../components/ui/Table.jsx'
 
 const STATUS_OPTIONS = ['all', ...CLIENT_STATUSES]
 
-const CLIENT_STATUS_LABELS = {
-  all: 'Todos',
-  active: 'Ativo',
-  paused: 'Pausado',
-  closed: 'Encerrado',
-}
-
-function getStatusBadgeVariant(status) {
-  const s = status.toLowerCase();
-  if (s === 'ativo' || s === 'active') return 'active';
-  if (s === 'pendente' || s === 'pending') return 'warning';
-  if (s === 'inadimplente' || s === 'overdue') return 'danger';
-  if (s === 'premium') return 'premium';
-  return 'active'; // Default
-}
-
 function ClientsListPage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
 
   const [clients, setClients] = useState([])
   const [tags, setTags] = useState([])
@@ -117,148 +95,143 @@ function ClientsListPage() {
     <section className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-dn-h2 text-white">Clientes</h2>
-          <p className="mt-1 text-dn-body text-dn-text-secondary">
+          <h2 className="text-2xl font-semibold text-slate-900">Clientes</h2>
+          <p className="mt-1 text-sm text-slate-600">
             Lista de clientes com filtros por busca, status e tag.
           </p>
         </div>
-        <Link to="/app/clients/new">
-          <Button variant="primary">Novo Cliente</Button>
+        <Link
+          to="/app/clients/new"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+        >
+          Novo Cliente
         </Link>
       </div>
 
       <form
-        className="grid gap-4 bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-xl p-6 md:grid-cols-4"
+        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
         onSubmit={handleApplyFilters}
       >
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">BUSCA</label>
-          <Input
+        <label className="block text-sm text-slate-700">
+          Busca
+          <input
             type="text"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Nome ou email"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">STATUS</label>
-          <Select
+        <label className="block text-sm text-slate-700">
+          Status
+          <select
             value={statusInput}
             onChange={(event) => setStatusInput(event.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
             {STATUS_OPTIONS.map((statusOption) => (
-              <option key={statusOption} value={statusOption} className="bg-dn-bg-elevated text-dn-text-primary">
-                {CLIENT_STATUS_LABELS[statusOption]}
+              <option key={statusOption} value={statusOption}>
+                {statusOption}
               </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </label>
 
-        <div>
-          <label className="block text-dn-label text-dn-text-muted mb-2">TAG</label>
-          <Select
+        <label className="block text-sm text-slate-700">
+          Tag
+          <select
             value={tagInput}
             onChange={(event) => setTagInput(event.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="all" className="bg-dn-bg-elevated text-dn-text-primary">Todas</option>
+            <option value="all">all</option>
             {tags.map((tag) => (
-              <option key={tag.id} value={tag.id} className="bg-dn-bg-elevated text-dn-text-primary">
+              <option key={tag.id} value={tag.id}>
                 {tag.name}
               </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </label>
 
         <div className="flex items-end gap-2">
-          <Button type="submit" className="w-full">Aplicar</Button>
-          <Button type="button" variant="ghost" onClick={handleResetFilters} className="px-3" title="Limpar filtros">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-            </svg>
-          </Button>
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
+            Aplicar
+          </button>
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+          >
+            Limpar
+          </button>
         </div>
       </form>
 
       {appliedFilters.searchTerm || appliedFilters.status !== 'all' || activeTagName ? (
-        <p className="text-dn-caption text-dn-text-muted bg-dn-bg-elevated border-[0.5px] border-dn-border inline-block px-3 py-1 rounded-dn-md">
+        <p className="text-sm text-slate-500">
           Filtros ativos:
-          {appliedFilters.searchTerm && <span className="text-white ml-1">busca="{appliedFilters.searchTerm}"</span>}
-          {appliedFilters.status !== 'all' && <span className="text-white ml-1">status="{appliedFilters.status}"</span>}
-          {activeTagName && <span className="text-white ml-1">tag="{activeTagName}"</span>}
+          {appliedFilters.searchTerm ? ` busca="${appliedFilters.searchTerm}"` : ''}
+          {appliedFilters.status !== 'all' ? ` status="${appliedFilters.status}"` : ''}
+          {activeTagName ? ` tag="${activeTagName}"` : ''}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-4 text-dn-body text-dn-text-muted animate-dn-shimmer">
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
           Carregando clientes...
         </p>
       ) : null}
 
       {!loading && error ? (
-        <p className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-md p-4 text-dn-body text-dn-danger">
-          {error}
-        </p>
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>
       ) : null}
 
       {!loading && !error && clients.length === 0 ? (
-        <div className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-10 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-full bg-dn-bg-elevated flex items-center justify-center text-dn-text-muted mb-4">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-          </div>
-          <h3 className="text-dn-h3 text-white mb-1">Nenhum cliente encontrado</h3>
-          <p className="text-dn-body text-dn-text-secondary max-w-sm mb-4">
-            Não encontramos nenhum cliente com os filtros aplicados no momento.
-          </p>
-          <Button variant="ghost" onClick={handleResetFilters}>Limpar Filtros</Button>
+        <div className="rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-600">Nenhum cliente encontrado para os filtros atuais.</p>
         </div>
       ) : null}
 
       {!loading && !error && clients.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableHead>CLIENTE</TableHead>
-            <TableHead>STATUS</TableHead>
-            <TableHead>TAGS</TableHead>
-            <TableHead></TableHead>
-          </TableHeader>
-          <TableBody>
-            {clients.map((client) => (
-              <TableRow key={client.id} onClick={() => navigate(`/app/clients/${client.id}`)}>
-                <TableCell>
-                  <p className="font-medium text-white">{client.name}</p>
-                  <p className="text-dn-caption text-dn-text-muted mt-0.5">{client.email ?? 'Sem email'}</p>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusBadgeVariant(client.status)} className="uppercase">
-                    {CLIENT_STATUS_LABELS[client.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {client.tags.length === 0 ? (
-                      <span className="text-dn-caption text-dn-text-muted">Nenhuma</span>
-                    ) : (
-                      client.tags.map((tag) => (
-                        <span key={tag.id} className="bg-dn-bg-elevated border-[0.5px] border-dn-border rounded px-1.5 py-0.5 text-[10px] text-dn-text-secondary">
-                          {tag.name}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </TableCell>
-                <TableActionCell>
-                  <Button variant="ghost" className="px-2 h-7 text-xs" onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/app/clients/${client.id}`);
-                  }}>
-                    Detalhes
-                  </Button>
-                </TableActionCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ul className="space-y-3">
+          {clients.map((client) => (
+            <li key={client.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{client.name}</h3>
+                  <p className="text-sm text-slate-600">{client.email ?? 'Sem email'}</p>
+                  <p className="text-xs uppercase text-slate-500">status: {client.status}</p>
+                </div>
+
+                <Link
+                  to={`/app/clients/${client.id}`}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
+                >
+                  Ver Detalhe
+                </Link>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {client.tags.length === 0 ? (
+                  <span className="text-xs text-slate-500">Sem tags</span>
+                ) : (
+                  client.tags.map((tag) => (
+                    <span
+                      key={`${client.id}-${tag.id}`}
+                      className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700"
+                    >
+                      {tag.name}
+                    </span>
+                  ))
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   )
