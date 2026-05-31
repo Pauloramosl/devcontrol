@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CLIENT_STATUSES, createClient, getClientById, updateClient } from '../lib/clients.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { Input } from '../components/ui/Input.jsx'
+import { Select } from '../components/ui/Select.jsx'
+import { Button } from '../components/ui/Button.jsx'
+import { AudioTranscriptionButton } from '../components/ui/AudioTranscriptionButton.jsx'
 
 const EMPTY_FORM = {
   name: '',
@@ -11,6 +15,12 @@ const EMPTY_FORM = {
   document_number: '',
   status: 'active',
   notes: '',
+}
+
+const CLIENT_STATUS_LABELS = {
+  active: 'Ativo',
+  paused: 'Pausado',
+  closed: 'Encerrado',
 }
 
 function ClientFormPage({ mode }) {
@@ -40,7 +50,7 @@ function ClientFormPage({ mode }) {
         if (!mounted) return
 
         if (!client) {
-          setError('Cliente nao encontrado.')
+          setError('Cliente não encontrado.')
           return
         }
 
@@ -83,22 +93,33 @@ function ClientFormPage({ mode }) {
     }))
   }
 
+  const handleTranscription = (name, text) => {
+    setFormData((current) => {
+      const existing = current[name] || ''
+      const nextValue = existing ? `${existing} ${text}` : text
+      return {
+        ...current,
+        [name]: nextValue,
+      }
+    })
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
 
     if (!ownerId) {
-      setError('Sessao invalida. Faca login novamente.')
+      setError('Sessão inválida. Faça login novamente.')
       return
     }
 
     if (!formData.name.trim()) {
-      setError('Nome do cliente e obrigatorio.')
+      setError('Nome do cliente é obrigatório.')
       return
     }
 
     if (!CLIENT_STATUSES.includes(formData.status)) {
-      setError('Status invalido.')
+      setError('Status inválido.')
       return
     }
 
@@ -129,125 +150,135 @@ function ClientFormPage({ mode }) {
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <p className="text-sm text-slate-600">Carregando formulario...</p>
+      <section className="bg-dn-bg-card border-[0.5px] border-dn-border rounded-dn-lg p-6 animate-dn-shimmer">
+        <p className="text-dn-body text-dn-text-muted">Carregando formulário do cliente...</p>
       </section>
     )
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-semibold text-slate-900">{pageTitle}</h2>
-        <Link
-          to={isEditMode ? `/app/clients/${id}` : '/app/clients'}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
-        >
-          Cancelar
+    <section className="space-y-6 max-w-4xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-[28px] font-bold text-white tracking-tight">{pageTitle}</h2>
+          <p className="text-dn-body text-dn-text-secondary mt-1">
+            {isEditMode ? 'Edite os dados cadastrais e o status do cliente.' : 'Adicione um novo cliente à sua carteira.'}
+          </p>
+        </div>
+        <Link to={isEditMode ? `/app/clients/${id}` : '/app/clients'}>
+          <Button variant="ghost">Cancelar</Button>
         </Link>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 md:grid-cols-2"
+        className="grid gap-6 rounded-[32px] border-[0.5px] border-dn-border bg-dn-bg-card p-8 md:grid-cols-2 shadow-2xl relative overflow-hidden"
       >
-        <label className="block text-sm text-slate-700 md:col-span-2">
-          Nome *
-          <input
+        {/* Subtle top edge glow */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-dn-accent/20 to-transparent"></div>
+
+        <div className="md:col-span-2">
+          <label className="block text-dn-label text-dn-text-muted mb-2">NOME / RAZÃO SOCIAL *</label>
+          <Input
             type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="Nome Completo ou Razão Social"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Email
-          <input
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">EMAIL PRINCIPAL</label>
+          <Input
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="contato@empresa.com.br"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Telefone
-          <input
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">TELEFONE / WHATSAPP</label>
+          <Input
             type="text"
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="(00) 00000-0000"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Empresa
-          <input
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">NOME FANTASIA (EMPRESA)</label>
+          <Input
             type="text"
             name="company"
             value={formData.company}
             onChange={handleChange}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="Nome público"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700">
-          Documento
-          <input
+        <div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">DOCUMENTO (CPF/CNPJ)</label>
+          <Input
             type="text"
             name="document_number"
             value={formData.document_number}
             onChange={handleChange}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            placeholder="Apenas números ou formatado"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm text-slate-700 md:col-span-2">
-          Status
-          <select
+        <div className="md:col-span-2">
+          <label className="block text-dn-label text-dn-text-muted mb-2">STATUS</label>
+          <Select
             name="status"
             value={formData.status}
             onChange={handleChange}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           >
             {CLIENT_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {CLIENT_STATUS_LABELS[status] ?? status}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </div>
 
-        <label className="block text-sm text-slate-700 md:col-span-2">
-          Notas
+        <div className="md:col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-dn-label text-dn-text-muted">NOTAS INTERNAS</label>
+            <AudioTranscriptionButton
+              onTranscription={(text) => handleTranscription('notes', text)}
+              placeholderText="Transcrever notas por voz"
+            />
+          </div>
           <textarea
             name="notes"
             value={formData.notes}
             onChange={handleChange}
             rows={5}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            className="w-full bg-dn-bg-elevated border-[0.5px] border-dn-border rounded-dn-md px-4 py-3 text-dn-body text-white outline-none focus:border-dn-accent/50 focus:ring-1 focus:ring-dn-accent/50 transition-all resize-none"
+            placeholder="Informações adicionais, observações e lembretes."
           />
-        </label>
+        </div>
 
         {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 md:col-span-2">
+          <div className="md:col-span-2 rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-4 py-3 text-dn-body text-dn-danger">
             {error}
-          </p>
+          </div>
         ) : null}
 
-        <div className="md:col-span-2">
-          <button
+        <div className="md:col-span-2 pt-6 border-t-[0.5px] border-dn-border mt-4 flex justify-end">
+          <Button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {saving ? 'Salvando...' : 'Salvar Cliente'}
-          </button>
+            {saving ? 'SALVANDO...' : (isEditMode ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR CLIENTE')}
+          </Button>
         </div>
       </form>
     </section>

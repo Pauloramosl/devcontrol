@@ -1,29 +1,23 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import AppLoadingScreen from '../components/AppLoadingScreen.jsx'
+import DottedSurface from '../components/DottedSurface.jsx'
+import { Input } from '../components/ui/Input.jsx'
+import { Button } from '../components/ui/Button.jsx'
+import AnimatedCardStack from '../components/AnimatedCardStack.jsx'
 
 const LOGIN_FAILURE_MESSAGE =
   'Não foi possível entrar. Verifique suas credenciais e tente novamente.'
 
+/* ── Ícone Google ─────────────────────────────────────────────── */
 function GoogleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
-      <path
-        d="M21.805 10.023h-9.63v3.96h5.523c-.337 2.004-2.066 3.96-5.523 3.96-3.312 0-6.009-2.744-6.009-6.132s2.697-6.131 6.01-6.131c1.887 0 3.145.803 3.867 1.49l2.632-2.567C17.012 3.057 14.862 2 12.175 2 6.78 2 2.407 6.373 2.407 11.81s4.373 9.81 9.768 9.81c5.639 0 9.373-3.96 9.373-9.529 0-.64-.07-1.126-.151-1.57l.408-.498Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M2.95 7.24 6.2 9.624c.879-2.177 3.007-3.944 5.975-3.944 1.886 0 3.145.803 3.867 1.49l2.632-2.567C17.012 3.057 14.862 2 12.175 2 8.35 2 5.028 4.177 2.95 7.24Z"
-        fill="#34A853"
-      />
-      <path
-        d="M12.175 21.62c2.617 0 4.807-.863 6.408-2.345l-2.968-2.427c-.794.551-1.814.944-3.44.944-3.444 0-5.564-1.967-5.955-3.844l-3.274 2.524c2.055 4.146 5.982 5.149 9.23 5.149Z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M2.95 16.473a9.79 9.79 0 0 1-.543-3.18c0-1.123.196-2.208.543-3.18V7.24L6.2 9.624a6.217 6.217 0 0 0-.347 2.669c0 .93.125 1.832.367 2.654l-3.27 2.526Z"
-        fill="#EA4335"
-      />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+      <path d="M21.805 10.023h-9.63v3.96h5.523c-.337 2.004-2.066 3.96-5.523 3.96-3.312 0-6.009-2.744-6.009-6.132s2.697-6.131 6.01-6.131c1.887 0 3.145.803 3.867 1.49l2.632-2.567C17.012 3.057 14.862 2 12.175 2 6.78 2 2.407 6.373 2.407 11.81s4.373 9.81 9.768 9.81c5.639 0 9.373-3.96 9.373-9.529 0-.64-.07-1.126-.151-1.57l.408-.498Z" fill="#4285F4" />
+      <path d="M2.95 7.24 6.2 9.624c.879-2.177 3.007-3.944 5.975-3.944 1.886 0 3.145.803 3.867 1.49l2.632-2.567C17.012 3.057 14.862 2 12.175 2 8.35 2 5.028 4.177 2.95 7.24Z" fill="#34A853" />
+      <path d="M12.175 21.62c2.617 0 4.807-.863 6.408-2.345l-2.968-2.427c-.794.551-1.814.944-3.44.944-3.444 0-5.564-1.967-5.955-3.844l-3.274 2.524c2.055 4.146 5.982 5.149 9.23 5.149Z" fill="#FBBC05" />
+      <path d="M2.95 16.473a9.79 9.79 0 0 1-.543-3.18c0-1.123.196-2.208.543-3.18V7.24L6.2 9.624a6.217 6.217 0 0 0-.347 2.669c0 .93.125 1.832.367 2.654l-3.27 2.526Z" fill="#EA4335" />
     </svg>
   )
 }
@@ -32,326 +26,150 @@ function LoginPage() {
   const navigate = useNavigate()
   const { session, loading, error, signInWithGoogle, signInWithPassword } = useAuth()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [formError, setFormError] = useState('')
+  const [email, setEmail]                   = useState('')
+  const [password, setPassword]             = useState('')
+  const [formError, setFormError]           = useState('')
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [isEmailLoading, setIsEmailLoading] = useState(false)
+  const [isEmailLoading, setIsEmailLoading]   = useState(false)
 
   useEffect(() => {
-    if (!loading && session) {
-      navigate('/app', { replace: true })
-    }
+    if (!loading && session) navigate('/app', { replace: true })
   }, [loading, session, navigate])
 
   const handleGoogleLogin = async () => {
     setFormError('')
     setIsGoogleLoading(true)
-
     const { error: signInError } = await signInWithGoogle()
-
-    if (signInError) {
-      setFormError(LOGIN_FAILURE_MESSAGE)
-      setIsGoogleLoading(false)
-    }
+    if (signInError) { setFormError(LOGIN_FAILURE_MESSAGE); setIsGoogleLoading(false) }
   }
 
-  const handleEmailLogin = async (event) => {
-    event.preventDefault()
+  const handleEmailLogin = async (e) => {
+    e.preventDefault()
     setFormError('')
-
-    if (!email || !password) {
-      setFormError('Informe email e senha para continuar.')
-      return
-    }
-
+    if (!email || !password) { setFormError('Informe email e senha para continuar.'); return }
     setIsEmailLoading(true)
     const { error: signInError } = await signInWithPassword({ email, password })
-
-    if (signInError) {
-      setFormError(LOGIN_FAILURE_MESSAGE)
-      setIsEmailLoading(false)
-      return
-    }
-
+    if (signInError) { setFormError(LOGIN_FAILURE_MESSAGE); setIsEmailLoading(false); return }
     navigate('/app', { replace: true })
   }
 
   const authError = formError || (error ? LOGIN_FAILURE_MESSAGE : '')
 
   if (loading) {
-    return (
-      <main className="login-shell flex min-h-screen items-center justify-center px-4">
-        <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-[rgba(11,18,32,0.85)] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-[20px]">
-          <span className="mx-auto mb-3 block h-7 w-7 animate-spin rounded-full border-2 border-blue-200/30 border-t-blue-400" />
-          <p className="text-sm text-slate-200">Verificando sessão...</p>
-        </section>
-      </main>
-    )
+    return <AppLoadingScreen />
   }
 
   return (
-    <main className="login-shell">
-      <div className="mx-auto grid min-h-screen w-full max-w-[1600px] grid-cols-1 gap-6 px-4 py-5 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:px-8 lg:py-6">
-        <section className="order-2 lg:order-1">
-          <div className="relative min-h-[280px] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#05070D] via-[#09111F] to-[#0F172A] p-6 shadow-[0_24px_70px_rgba(2,6,23,0.75)] sm:min-h-[320px] sm:p-8 lg:min-h-[calc(100vh-3rem)] lg:p-12">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="login-flow-lines absolute left-[-12%] top-[22%] h-px w-[140%] bg-gradient-to-r from-transparent via-blue-300/30 to-transparent" />
-              <div
-                className="login-flow-lines absolute left-[-18%] top-[44%] h-px w-[145%] rotate-[7deg] bg-gradient-to-r from-transparent via-blue-400/20 to-transparent"
-                style={{ animationDelay: '-4s' }}
-              />
-              <div
-                className="login-flow-lines absolute left-[-15%] top-[66%] h-px w-[130%] -rotate-[8deg] bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent"
-                style={{ animationDelay: '-8s' }}
-              />
-            </div>
+    <main className="relative isolate flex min-h-screen overflow-hidden bg-dn-bg-base text-dn-text-primary dn-ambient-container dn-ambient-blue">
+      {/* ══ FUNDO ANIMADO — Dotted Wave ══════════════════════════ */}
+      <DottedSurface />
 
-            <div className="login-fade-delayed relative z-10 max-w-2xl">
-              <span className="inline-flex items-center rounded-full border border-blue-200/20 bg-blue-500/10 px-3 py-1 text-xs font-medium tracking-[0.18em] text-blue-100">
-                DEVCONTROL
-              </span>
-              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl lg:text-5xl">
-                O centro de comando do seu negócio digital
-              </h1>
-              <p className="mt-4 max-w-xl text-sm text-slate-300 sm:text-base">
-                Gerencie clientes, projetos, finanças e execução em um único sistema.
-              </p>
-            </div>
+      {/* ══ LADO ESQUERDO — Animated Stack ══════════════════════ */}
+      <section className="relative hidden w-1/2 flex-col justify-center items-center overflow-hidden lg:flex z-10 px-2">
+        <div className="w-full max-w-[800px] flex items-center justify-center">
+          <AnimatedCardStack />
+        </div>
+      </section>
 
-            <div className="login-hero-enter login-hero-float relative z-10 mt-8 lg:mt-14">
-              <div className="relative mx-auto max-w-[460px] overflow-hidden rounded-3xl border border-blue-200/15 bg-[rgba(15,23,42,0.68)] p-6 backdrop-blur-sm sm:p-8">
-                <div className="login-core-glow pointer-events-none absolute inset-0 m-auto h-72 w-72 rounded-full" />
+      {/* ══ LADO DIREITO — Auth Panel ══════════════════════════════ */}
+      <section className="relative flex w-full flex-col items-center justify-center lg:w-1/2 z-10 p-4 lg:p-12">
+        <div className="dn-glass w-full max-w-[420px] rounded-dn-xl p-8 shadow-2xl relative overflow-hidden">
+          {/* Ambient interno para destaque leve */}
+          <div className="absolute top-0 right-0 w-[200px] h-[200px] rounded-full bg-dn-accent/10 blur-[50px] -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
 
-                <svg
-                  viewBox="0 0 320 320"
-                  aria-hidden="true"
-                  className="relative mx-auto h-64 w-full max-w-[340px]"
-                >
-                  <circle cx="160" cy="160" r="116" fill="none" stroke="rgba(148,163,184,0.12)" />
-                  <circle cx="160" cy="160" r="86" fill="none" stroke="rgba(96,165,250,0.14)" />
-
-                  <g className="login-core-orbit" style={{ transformOrigin: '160px 160px' }}>
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="160"
-                      y2="60"
-                      stroke="rgba(96,165,250,0.42)"
-                      strokeWidth="1.5"
-                    />
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="244"
-                      y2="112"
-                      stroke="rgba(96,165,250,0.38)"
-                      strokeWidth="1.5"
-                      style={{ animationDelay: '-2s' }}
-                    />
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="244"
-                      y2="208"
-                      stroke="rgba(34,211,238,0.34)"
-                      strokeWidth="1.5"
-                      style={{ animationDelay: '-4s' }}
-                    />
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="76"
-                      y2="208"
-                      stroke="rgba(96,165,250,0.38)"
-                      strokeWidth="1.5"
-                      style={{ animationDelay: '-6s' }}
-                    />
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="76"
-                      y2="112"
-                      stroke="rgba(34,211,238,0.34)"
-                      strokeWidth="1.5"
-                      style={{ animationDelay: '-8s' }}
-                    />
-                    <line
-                      className="login-flow-lines"
-                      x1="160"
-                      y1="160"
-                      x2="160"
-                      y2="260"
-                      stroke="rgba(96,165,250,0.36)"
-                      strokeWidth="1.5"
-                      style={{ animationDelay: '-10s' }}
-                    />
-
-                    <circle className="login-particle" cx="160" cy="60" r="6" fill="rgba(96,165,250,0.92)" />
-                    <circle
-                      className="login-particle"
-                      cx="244"
-                      cy="112"
-                      r="5.5"
-                      fill="rgba(125,211,252,0.95)"
-                      style={{ animationDelay: '-0.8s' }}
-                    />
-                    <circle
-                      className="login-particle"
-                      cx="244"
-                      cy="208"
-                      r="5.5"
-                      fill="rgba(34,211,238,0.92)"
-                      style={{ animationDelay: '-1.6s' }}
-                    />
-                    <circle
-                      className="login-particle"
-                      cx="76"
-                      cy="208"
-                      r="5.5"
-                      fill="rgba(96,165,250,0.92)"
-                      style={{ animationDelay: '-2.4s' }}
-                    />
-                    <circle
-                      className="login-particle"
-                      cx="76"
-                      cy="112"
-                      r="5.5"
-                      fill="rgba(34,211,238,0.92)"
-                      style={{ animationDelay: '-3.2s' }}
-                    />
-                    <circle
-                      className="login-particle"
-                      cx="160"
-                      cy="260"
-                      r="5.5"
-                      fill="rgba(96,165,250,0.9)"
-                      style={{ animationDelay: '-4s' }}
-                    />
-                  </g>
-
-                  <circle className="login-core-pulse" cx="160" cy="160" r="28" fill="rgba(37,99,235,0.85)" />
-                  <circle cx="160" cy="160" r="14" fill="rgba(125,211,252,0.96)" />
-
-                  <circle className="login-particle" cx="40" cy="76" r="2.2" fill="rgba(148,197,255,0.7)" />
-                  <circle
-                    className="login-particle"
-                    cx="278"
-                    cy="86"
-                    r="2.2"
-                    fill="rgba(125,211,252,0.75)"
-                    style={{ animationDelay: '-1.4s' }}
-                  />
-                  <circle
-                    className="login-particle"
-                    cx="285"
-                    cy="250"
-                    r="2.2"
-                    fill="rgba(96,165,250,0.75)"
-                    style={{ animationDelay: '-2.6s' }}
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="order-1 flex items-center justify-center lg:order-2">
-          <div className="login-panel-enter w-full max-w-md rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(11,18,32,0.85)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-[20px] sm:p-8">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-200/80">
-              Central de Acesso
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-50">
-              Acesse sua central de controle
+          <div className="relative z-10">
+            <h2 className="text-dn-h2 mb-2 text-white">
+              Entrar no DevControl
             </h2>
-            <p className="mt-2 text-sm text-slate-300">
-              Entre para gerenciar clientes, projetos, finanças e execução em um só lugar.
+            <p className="text-dn-body text-dn-text-secondary mb-8">
+              Acesse sua conta para continuar.
             </p>
 
+            {/* Botão Google */}
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading || isEmailLoading}
-              className="login-button-lift mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-100 transition-all duration-200 hover:border-blue-400/30 hover:bg-slate-800/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-3 h-[44px] bg-dn-bg-elevated border-[0.5px] border-dn-border rounded-dn-md hover:bg-dn-bg-hover hover:border-dn-border-hover transition-dn text-dn-mono disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGoogleLoading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <GoogleIcon />
-              )}
-              {isGoogleLoading ? 'Redirecionando para Google...' : 'Entrar com Google'}
+              {isGoogleLoading
+                ? <span className="h-5 w-5 animate-dn-spin rounded-full border-2 border-dn-text-muted border-t-white" />
+                : <GoogleIcon />}
+              {isGoogleLoading ? 'Autenticando...' : 'Continuar com Google'}
             </button>
 
-            <div className="my-6 flex items-center gap-3">
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-slate-400">ou continue com email</span>
-              <span className="h-px flex-1 bg-white/10" />
+            {/* Divisor */}
+            <div className="my-6 flex items-center gap-4">
+              <span className="h-[1px] flex-1 bg-dn-border" />
+              <span className="text-dn-caption text-dn-text-muted uppercase tracking-[0.08em]">
+                ou com email
+              </span>
+              <span className="h-[1px] flex-1 bg-dn-border" />
             </div>
 
+            {/* Formulário */}
             <form className="space-y-4" onSubmit={handleEmailLogin}>
-              <label className="block text-sm font-medium text-slate-200" htmlFor="login-email">
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                placeholder="voce@empresa.com"
-                disabled={isEmailLoading || isGoogleLoading}
-                className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 transition-all duration-200 hover:border-white/20 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-              />
+              <div>
+                <label className="block text-dn-label text-dn-text-muted mb-2">
+                  E-MAIL
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nome@empresa.com"
+                  disabled={isEmailLoading || isGoogleLoading}
+                  required
+                />
+              </div>
 
-              <label className="block text-sm font-medium text-slate-200" htmlFor="login-password">
-                Senha
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                placeholder="********"
-                disabled={isEmailLoading || isGoogleLoading}
-                className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 transition-all duration-200 hover:border-white/20 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-              />
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="block text-dn-label text-dn-text-muted">
+                    SENHA
+                  </label>
+                  <a href="#" className="text-dn-label text-dn-accent hover:text-white transition-dn">
+                    Esqueceu a senha?
+                  </a>
+                </div>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  disabled={isEmailLoading || isGoogleLoading}
+                  required
+                />
+              </div>
 
-              <button
+              {authError && (
+                <div className="bg-dn-danger-bg border-[0.5px] border-dn-danger/30 rounded-dn-md p-3 text-dn-body text-dn-danger mt-2">
+                  {authError}
+                </div>
+              )}
+
+              <Button
                 type="submit"
+                variant="primary"
                 disabled={isEmailLoading || isGoogleLoading}
-                className="login-button-lift login-primary-button mt-1 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-blue-900/20 transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full mt-6 h-[44px]"
               >
                 {isEmailLoading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Entrando...
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-dn-spin rounded-full border-2 border-white/30 border-t-white" />
+                    ACESSANDO...
                   </span>
-                ) : (
-                  'Entrar'
-                )}
-              </button>
+                ) : 'ACESSAR TERMINAL'}
+              </Button>
             </form>
-
-            {/* TODO: Adicionar recuperação de senha e cadastro em fase futura. */}
-            {authError ? (
-              <p
-                className="mt-4 rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-200"
-                role="alert"
-              >
-                {authError}
-              </p>
-            ) : null}
-
-            <p className="mt-5 text-xs text-slate-400">Seu acesso é protegido por autenticação segura.</p>
           </div>
-        </section>
-      </div>
+        </div>
+
+        {/* Footer info */}
+        <div className="absolute bottom-6 w-full text-center text-dn-caption text-dn-text-muted tracking-[0.1em] uppercase z-10">
+          DevControl v4.0.R // Conexão_Segura_Ativa
+        </div>
+      </section>
     </main>
   )
 }

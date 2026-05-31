@@ -20,6 +20,29 @@ function normalizeTaskInput(input) {
   }
 }
 
+export async function loadOverdueTasks({ ownerId }) {
+  if (!ownerId) throw new Error('ownerId is required.')
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const today = `${year}-${month}-${day}`
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, title, due_date, project_id, projects(id, service_type, clients(id, name)), project_columns!inner(name)')
+    .eq('owner_id', ownerId)
+    .eq('status', 'active')
+    .not('due_date', 'is', null)
+    .lt('due_date', today)
+    .not('project_columns.name', 'ilike', '%conclu%')
+    .order('due_date', { ascending: true })
+
+  if (error) throw error
+  return data ?? []
+}
+
 async function createTaskLog({
   ownerId,
   taskId,

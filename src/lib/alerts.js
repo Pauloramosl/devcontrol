@@ -25,7 +25,7 @@ export async function getAlertCounts({ ownerId }) {
   const today = getTodayIsoDate()
   const nextWeek = getIsoDatePlusDays(7)
 
-  const [overdueInvoices, overdueExpenses, upcomingInvoices, upcomingExpenses, overdueTasks] =
+  const [overdueInvoices, overdueExpenses, upcomingInvoices, upcomingExpenses] =
     await Promise.all([
       supabase
         .from('invoices')
@@ -53,27 +53,18 @@ export async function getAlertCounts({ ownerId }) {
         .eq('status', 'pending')
         .gte('due_date', today)
         .lte('due_date', nextWeek),
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('owner_id', ownerId)
-        .eq('status', 'active')
-        .not('due_date', 'is', null)
-        .lt('due_date', today),
     ])
 
   if (overdueInvoices.error) throw overdueInvoices.error
   if (overdueExpenses.error) throw overdueExpenses.error
   if (upcomingInvoices.error) throw upcomingInvoices.error
   if (upcomingExpenses.error) throw upcomingExpenses.error
-  if (overdueTasks.error) throw overdueTasks.error
 
   const counts = {
     overdueInvoices: overdueInvoices.count ?? 0,
     overdueExpenses: overdueExpenses.count ?? 0,
     upcomingInvoices: upcomingInvoices.count ?? 0,
     upcomingExpenses: upcomingExpenses.count ?? 0,
-    overdueTasks: overdueTasks.count ?? 0,
   }
 
   return {
@@ -82,8 +73,7 @@ export async function getAlertCounts({ ownerId }) {
       counts.overdueInvoices +
       counts.overdueExpenses +
       counts.upcomingInvoices +
-      counts.upcomingExpenses +
-      counts.overdueTasks,
+      counts.upcomingExpenses,
   }
 }
 
@@ -95,7 +85,7 @@ export async function loadAlerts({ ownerId }) {
   const today = getTodayIsoDate()
   const nextWeek = getIsoDatePlusDays(7)
 
-  const [overdueInvoicesResult, overdueExpensesResult, upcomingInvoicesResult, upcomingExpensesResult, overdueTasksResult] =
+  const [overdueInvoicesResult, overdueExpensesResult, upcomingInvoicesResult, upcomingExpensesResult] =
     await Promise.all([
       supabase
         .from('invoices')
@@ -127,27 +117,17 @@ export async function loadAlerts({ ownerId }) {
         .gte('due_date', today)
         .lte('due_date', nextWeek)
         .order('due_date', { ascending: true }),
-      supabase
-        .from('tasks')
-        .select('id, title, due_date, project_id, projects(id, service_type, clients(id, name))')
-        .eq('owner_id', ownerId)
-        .eq('status', 'active')
-        .not('due_date', 'is', null)
-        .lt('due_date', today)
-        .order('due_date', { ascending: true }),
     ])
 
   if (overdueInvoicesResult.error) throw overdueInvoicesResult.error
   if (overdueExpensesResult.error) throw overdueExpensesResult.error
   if (upcomingInvoicesResult.error) throw upcomingInvoicesResult.error
   if (upcomingExpensesResult.error) throw upcomingExpensesResult.error
-  if (overdueTasksResult.error) throw overdueTasksResult.error
 
   return {
     overdueInvoices: overdueInvoicesResult.data ?? [],
     overdueExpenses: overdueExpensesResult.data ?? [],
     upcomingInvoices: upcomingInvoicesResult.data ?? [],
     upcomingExpenses: upcomingExpensesResult.data ?? [],
-    overdueTasks: overdueTasksResult.data ?? [],
   }
 }

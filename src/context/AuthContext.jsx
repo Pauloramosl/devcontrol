@@ -89,6 +89,35 @@ export function AuthProvider({ children }) {
     return { error: null }
   }
 
+  const updateUserProfile = async ({ fullName, avatarUrl }) => {
+    setError(null)
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        full_name: fullName,
+        avatar_url: avatarUrl,
+      }
+    })
+
+    if (updateError) {
+      setError(updateError.message)
+      return { error: updateError }
+    }
+    return { error: null }
+  }
+
+  const updatePassword = async (newPassword) => {
+    setError(null)
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    if (updateError) {
+      setError(updateError.message)
+      return { error: updateError }
+    }
+    return { error: null }
+  }
+
   const value = useMemo(
     () => ({
       session,
@@ -98,6 +127,8 @@ export function AuthProvider({ children }) {
       signInWithGoogle,
       signInWithPassword,
       signOut,
+      updateUserProfile,
+      updatePassword,
     }),
     [session, loading, error],
   )
