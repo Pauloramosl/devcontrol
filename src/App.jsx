@@ -7,6 +7,7 @@ import ClientDetailPage from './pages/ClientDetailPage.jsx'
 import ClientFormPage from './pages/ClientFormPage.jsx'
 import ClientsListPage from './pages/ClientsListPage.jsx'
 import AlertsPage from './pages/AlertsPage.jsx'
+import CalendarPage from './pages/CalendarPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import ExpenseFormPage from './pages/ExpenseFormPage.jsx'
 import ExpensesListPage from './pages/ExpensesListPage.jsx'
@@ -24,6 +25,7 @@ import RecurrenceFormPage from './pages/RecurrenceFormPage.jsx'
 import RecurrencesListPage from './pages/RecurrencesListPage.jsx'
 import TagsPage from './pages/TagsPage.jsx'
 import TestLoaderPage from './pages/TestLoaderPage.jsx'
+import WhatsAppPage from './pages/WhatsAppPage.jsx'
 
 function App() {
   return (
@@ -35,6 +37,8 @@ function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route path="/app" element={<AppHomePage />} />
           <Route path="/app/alerts" element={<AlertsPage />} />
+          <Route path="/app/calendar" element={<CalendarPage />} />
+          <Route path="/app/whatsapp" element={<WhatsAppPage />} />
           <Route path="/app/settings" element={<SettingsPage />} />
           <Route path="/app/clients" element={<ClientsListPage />} />
           <Route path="/app/clients/new" element={<ClientFormPage mode="create" />} />

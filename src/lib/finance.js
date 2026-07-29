@@ -124,6 +124,23 @@ export function getCurrentReferenceMonth() {
   return `${year}-${month}`
 }
 
+function formatLocalIsoDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function extractIsoDate(value) {
+  const raw = String(value ?? '').trim()
+  return raw ? raw.substring(0, 10) : ''
+}
+
+function isDateInsideRange(dateKey, startDate, endDate) {
+  if (!dateKey) return false
+  return dateKey >= startDate && dateKey <= endDate
+}
+
 function buildDueDateFromReferenceMonth(referenceMonth, dueDay) {
   const [yearRaw, monthRaw] = referenceMonth.split('-')
   const year = Number.parseInt(yearRaw, 10)
@@ -729,34 +746,28 @@ export async function getFinanceSummary({ ownerId }) {
   }
 }
 
-export async function getMonthlyChartData({ ownerId, months = 6 }) {
+export async function getFinanceTimelineData({ ownerId, months = 6 }) {
   if (!ownerId) {
     throw new Error('ownerId is required to load chart data.')
   }
 
-  // Build list of the last N months (YYYY-MM)
   const now = new Date()
-  const monthKeys = []
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    monthKeys.push(`${y}-${m}`)
-  }
+  const safeMonths = Math.max(1, Number.parseInt(String(months ?? 6), 10) || 6)
+  const start = new Date(now.getFullYear(), now.getMonth() - (safeMonths - 1), 1)
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-  const startDate = `${monthKeys[0]}-01`
+  const startDate = formatLocalIsoDate(start)
+  const endDate = formatLocalIsoDate(end)
 
   const [invoicesResult, expensesResult] = await Promise.all([
     supabase
       .from('invoices')
       .select('id, value, due_date, status, paid_at')
-      .eq('owner_id', ownerId)
-      .gte('due_date', startDate),
+      .eq('owner_id', ownerId),
     supabase
       .from('expenses')
       .select('id, value, due_date, status, paid_at')
-      .eq('owner_id', ownerId)
-      .gte('due_date', startDate),
+      .eq('owner_id', ownerId),
   ])
 
   if (invoicesResult.error) throw invoicesResult.error
@@ -765,34 +776,46 @@ export async function getMonthlyChartData({ ownerId, months = 6 }) {
   const invoices = invoicesResult.data ?? []
   const expenses = expensesResult.data ?? []
 
-  // Initialize buckets
   const buckets = {}
-  for (const key of monthKeys) {
-    buckets[key] = { month: key, revenue: 0, expenses: 0 }
-  }
-
-  // Aggregate invoices (paid → revenue, pending/overdue → also count as expected)
-  for (const inv of invoices) {
-    if (!inv.due_date) continue
-    const key = inv.due_date.substring(0, 7) // YYYY-MM
-    if (!buckets[key]) continue
-    const val = Number(inv.value ?? 0)
-    if (inv.status === 'paid') {
-      buckets[key].revenue += val
-    } else if (inv.status === 'pending') {
-      // Count pending as expected revenue
-      buckets[key].revenue += val
+  for (
+    let cursor = start;
+    cursor <= end;
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)
+  ) {
+    const dateKey = formatLocalIsoDate(cursor)
+    buckets[dateKey] = {
+      date: dateKey,
+      month: dateKey.substring(0, 7),
+      revenue: 0,
+      expenses: 0,
     }
   }
 
-  // Aggregate expenses
-  for (const exp of expenses) {
-    if (!exp.due_date) continue
-    const key = exp.due_date.substring(0, 7)
+  for (const inv of invoices) {
+    if (inv.status === 'canceled') continue
+
+    const key = inv.status === 'paid'
+      ? extractIsoDate(inv.paid_at) || extractIsoDate(inv.due_date)
+      : extractIsoDate(inv.due_date)
+
+    if (!isDateInsideRange(key, startDate, endDate)) continue
     if (!buckets[key]) continue
-    const val = Number(exp.value ?? 0)
-    buckets[key].expenses += val
+
+    buckets[key].revenue += Number(inv.value ?? 0)
   }
 
-  return monthKeys.map(k => buckets[k])
+  for (const exp of expenses) {
+    if (exp.status === 'canceled') continue
+
+    const key = exp.status === 'paid'
+      ? extractIsoDate(exp.paid_at) || extractIsoDate(exp.due_date)
+      : extractIsoDate(exp.due_date)
+
+    if (!isDateInsideRange(key, startDate, endDate)) continue
+    if (!buckets[key]) continue
+
+    buckets[key].expenses += Number(exp.value ?? 0)
+  }
+
+  return Object.values(buckets)
 }

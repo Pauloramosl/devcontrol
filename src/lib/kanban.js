@@ -20,6 +20,15 @@ function normalizeTaskInput(input) {
   }
 }
 
+function isTaskCommentsTableMissing(error) {
+  const message = String(error?.message ?? '')
+  return (
+    error?.code === 'PGRST205'
+    || message.includes("Could not find the table 'public.task_comments'")
+    || (message.includes('task_comments') && message.includes('schema cache'))
+  )
+}
+
 export async function loadOverdueTasks({ ownerId }) {
   if (!ownerId) throw new Error('ownerId is required.')
 
@@ -59,6 +68,125 @@ async function createTaskLog({
   })
 
   if (error) {
+    throw error
+  }
+}
+
+function applyTaskCommentCounts(tasks, counts = new Map()) {
+  return tasks.map((task) => {
+    const fallbackCount = Number(task?.comment_count ?? 0)
+    const commentCount = counts.has(task.id)
+      ? counts.get(task.id)
+      : (Number.isFinite(fallbackCount) ? fallbackCount : 0)
+
+    return {
+      ...task,
+      comment_count: commentCount,
+    }
+  })
+}
+
+export async function attachTaskCommentCounts({ ownerId, tasks }) {
+  const taskList = Array.isArray(tasks) ? tasks : []
+  const taskIds = [...new Set(taskList.map((task) => task.id).filter(Boolean))]
+
+  if (!ownerId || taskIds.length === 0) {
+    return applyTaskCommentCounts(taskList)
+  }
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select('task_id')
+    .eq('owner_id', ownerId)
+    .in('task_id', taskIds)
+
+  if (error) {
+    if (isTaskCommentsTableMissing(error)) {
+      return applyTaskCommentCounts(taskList)
+    }
+
+    console.warn('Failed to load task comment counts:', error)
+    return applyTaskCommentCounts(taskList)
+  }
+
+  const counts = new Map()
+  for (const comment of data ?? []) {
+    counts.set(comment.task_id, (counts.get(comment.task_id) ?? 0) + 1)
+  }
+
+  return applyTaskCommentCounts(taskList, counts)
+}
+
+export async function listTaskComments({ ownerId, taskId }) {
+  if (!ownerId || !taskId) {
+    throw new Error('ownerId and taskId are required to list task comments.')
+  }
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select('id, owner_id, task_id, body, created_at, updated_at')
+    .eq('owner_id', ownerId)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    if (isTaskCommentsTableMissing(error)) {
+      return []
+    }
+
+    throw error
+  }
+
+  return data ?? []
+}
+
+export async function createTaskComment({ ownerId, taskId, body }) {
+  if (!ownerId || !taskId) {
+    throw new Error('ownerId and taskId are required to create a task comment.')
+  }
+
+  const commentBody = String(body ?? '').trim()
+  if (!commentBody) {
+    throw new Error('Comment body is required.')
+  }
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .insert({
+      owner_id: ownerId,
+      task_id: taskId,
+      body: commentBody,
+    })
+    .select('id, owner_id, task_id, body, created_at, updated_at')
+    .single()
+
+  if (error) {
+    if (isTaskCommentsTableMissing(error)) {
+      throw new Error('Os comentários ainda precisam ser ativados no banco de dados.')
+    }
+
+    throw error
+  }
+
+  return data
+}
+
+export async function deleteTaskComment({ ownerId, commentId }) {
+  if (!ownerId || !commentId) {
+    throw new Error('ownerId and commentId are required to delete a task comment.')
+  }
+
+  const { error } = await supabase
+    .from('task_comments')
+    .delete()
+    .eq('owner_id', ownerId)
+    .eq('id', commentId)
+
+  if (error) {
+    if (isTaskCommentsTableMissing(error)) {
+      throw new Error('Os comentários ainda precisam ser ativados no banco de dados.')
+    }
+
     throw error
   }
 }
@@ -256,7 +384,7 @@ export async function listProjectTasks({ ownerId, projectId }) {
     throw error
   }
 
-  return data ?? []
+  return attachTaskCommentCounts({ ownerId, tasks: data ?? [] })
 }
 
 export async function createTask({ ownerId, projectId, columnId, input }) {
@@ -327,7 +455,10 @@ export async function createTask({ ownerId, projectId, columnId, input }) {
     },
   })
 
-  return createdTask
+  return {
+    ...createdTask,
+    comment_count: 0,
+  }
 }
 
 export async function updateTask({ ownerId, taskId, input }) {
@@ -385,7 +516,8 @@ export async function updateTask({ ownerId, taskId, input }) {
     },
   })
 
-  return updatedTask
+  const [updatedTaskWithComments] = await attachTaskCommentCounts({ ownerId, tasks: [updatedTask] })
+  return updatedTaskWithComments
 }
 
 export async function rebalanceColumnRanks({ ownerId, columnId }) {
@@ -495,7 +627,8 @@ export async function moveTask({
     },
   })
 
-  return movedTask
+  const [movedTaskWithComments] = await attachTaskCommentCounts({ ownerId, tasks: [movedTask] })
+  return movedTaskWithComments
 }
 
 export async function listProjectTaskLogs({ ownerId, projectId, limit = 50 }) {

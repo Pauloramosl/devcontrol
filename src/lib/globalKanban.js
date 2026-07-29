@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { attachTaskCommentCounts } from './kanban.js'
 
 export async function loadGlobalKanbanData({ ownerId }) {
   if (!ownerId) {
@@ -68,6 +69,6 @@ export async function loadGlobalKanbanData({ ownerId }) {
     projects,
     clients,
     columns: columnsResult.data ?? [],
-    tasks: tasksResult.data ?? [],
+    tasks: await attachTaskCommentCounts({ ownerId, tasks: tasksResult.data ?? [] }),
   }
 }

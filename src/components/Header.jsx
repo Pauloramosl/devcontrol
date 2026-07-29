@@ -1,6 +1,5 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useLocation } from 'react-router-dom';
 
 
 /* ── Mapa de rotas → nome da seção ── */
@@ -9,6 +8,7 @@ const SECTION_MAP = [
   { path: '/app/clients',    label: 'Clientes' },
   { path: '/app/projects',   label: 'Projetos' },
   { path: '/app/kanban',     label: 'Kanban' },
+  { path: '/app/calendar',   label: 'Calendário' },
   { path: '/app/alerts',     label: 'Alertas' },
   { path: '/app/tags',       label: 'Tags' },
   { path: '/app/pipelines',  label: 'Pipelines' },
@@ -22,31 +22,16 @@ function getSectionLabel(pathname) {
 }
 
 function Header() {
-  const { user } = useAuth();
   const location = useLocation();
   
   // Extrair informações do usuário
-  const avatarUrl = user?.user_metadata?.avatar_url;
-  const fullName = user?.user_metadata?.full_name;
-  const email = user?.email || 'User';
   
-  let initials = 'U';
-  if (fullName) {
-    const parts = fullName.split(' ');
-    initials = parts.length > 1 
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : fullName.substring(0, 2).toUpperCase();
-  } else {
-    initials = email.substring(0, 2).toUpperCase();
-  }
 
   const sectionLabel = getSectionLabel(location.pathname);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-[56px] px-6 z-50 flex items-center justify-between border-b-[0.5px] border-dn-border bg-[#0a1220f2] backdrop-blur-[8px]">
+    <header className="fixed top-0 left-[96px] right-0 h-[56px] px-6 z-50 flex items-center justify-between border-b-[0.5px] border-dn-border bg-[#0a1220f2] backdrop-blur-[8px]">
       <div className="flex items-center gap-4">
-        {/* Placeholder para a logo/sidebar */}
-        <div className="w-[56px] shrink-0" />
         <h1 className="text-[15px] font-bold text-dn-text-primary tracking-[-0.02em]">{sectionLabel.toUpperCase()}</h1>
       </div>
 
@@ -116,17 +101,6 @@ function Header() {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-dn-danger"></span>
         </button>
 
-        <Link to="/app/settings" className="block relative group">
-          {avatarUrl ? (
-            <div className="w-8 h-8 rounded-full bg-dn-bg-elevated overflow-hidden border-[0.5px] border-dn-border group-hover:border-dn-accent transition-all">
-              <img src={avatarUrl} alt={fullName || 'User'} className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-dn-accent/20 flex items-center justify-center text-[13px] font-medium text-dn-accent border-[0.5px] border-transparent group-hover:border-dn-accent transition-all">
-              {initials}
-            </div>
-          )}
-        </Link>
       </div>
     </header>
   );

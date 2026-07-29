@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getFinanceSummary, getMonthlyChartData } from '../lib/finance.js'
+import { getFinanceSummary, getFinanceTimelineData } from '../lib/finance.js'
 import { loadAlerts } from '../lib/alerts.js'
 import { listProjects } from '../lib/projects.js'
 import { listClients } from '../lib/clients.js'
@@ -47,7 +47,7 @@ function AppHomePage() {
         loadAlerts({ ownerId }),
         listProjects({ ownerId, status: 'all', clientId: 'all' }),
         listClients({ ownerId, searchTerm: '', status: 'all', tagId: 'all' }),
-        getMonthlyChartData({ ownerId, months: 6 }),
+        getFinanceTimelineData({ ownerId, months: 12 }),
       ])
 
       const mrr = financeRes.mrr || 0
@@ -105,8 +105,49 @@ function AppHomePage() {
     }
   }, [fetchDashboardData])
 
-  // Cálculo fictício de saúde para o gráfico Donut
+  // Cálculo fictício de saúde para o gráfico Donut/Ticks
   const healthPercentage = Math.max(0, 100 - (dashboardData.alertsCount * 5))
+
+  // Gerar segmentos de linha radiais (ticks) para o medidor circular de eficiência
+  const totalTicks = 60
+  const ticks = []
+  for (let i = 0; i < totalTicks; i++) {
+    const angle = (i * 360) / totalTicks - 90 // Inicia no topo (12 horas) e gira em sentido horário
+    const angleRad = (angle * Math.PI) / 180
+    
+    // Dimensões do gauge (raios interno e externo)
+    const rInner = 34
+    const rOuter = 42
+    const x1 = 50 + rInner * Math.cos(angleRad)
+    const y1 = 50 + rInner * Math.sin(angleRad)
+    const x2 = 50 + rOuter * Math.cos(angleRad)
+    const y2 = 50 + rOuter * Math.sin(angleRad)
+    
+    // Determina se este segmento está ativo com base no percentual
+    const isActive = i < (healthPercentage / 100) * totalTicks
+    
+    // Cor do segmento: inativo é cinza escuro sutil, ativo segue um lindo gradiente HSL
+    let strokeColor = 'rgba(255, 255, 255, 0.08)'
+    if (isActive) {
+      // Começa no verde (110) e caminha pelo ciano, azul, roxo e rosa (até 360/0)
+      const hue = (110 + (i / totalTicks) * 250) % 360
+      strokeColor = `hsl(${hue}, 90%, 60%)`
+    }
+    
+    ticks.push(
+      <line
+        key={i}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={strokeColor}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        className="transition-all duration-300"
+      />
+    )
+  }
 
   return (
     <div className="relative min-h-[calc(100vh-100px)] pt-4 pb-10">
@@ -147,44 +188,86 @@ function AppHomePage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="flex flex-col">
-              <span className="text-sm text-dn-text-secondary font-medium mb-2 flex items-center justify-between pr-4">
-                Receita (MRR)
-                <span className="text-[10px] text-dn-success bg-dn-success/10 px-2 py-0.5 rounded-full">↑ Ativo</span>
-              </span>
-              <span className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                <AnimatedCounter value={dashboardData.mrr} formatCurrency={true} />
-              </span>
+            <div className="flex justify-between items-stretch group">
+              <div className="flex flex-col justify-between py-0.5">
+                <span className="text-xs md:text-sm text-dn-text-secondary font-medium">
+                  Receita (MRR)
+                </span>
+                <span className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mt-2">
+                  <AnimatedCounter value={dashboardData.mrr} formatCurrency={true} />
+                </span>
+              </div>
+              <div className="flex flex-col items-end justify-between pl-4 shrink-0">
+                <span className="text-[10px] font-bold text-dn-success bg-dn-success/10 px-2 py-0.5 rounded-full">↑ Ativo</span>
+                <div className="w-10 h-10 rounded-xl bg-dn-success/10 border border-dn-success/20 flex items-center justify-center text-dn-success transition-all duration-300 group-hover:scale-110 shadow-[0_0_15px_rgba(16,185,129,0.15)] group-hover:border-dn-success/40">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
             
-            <div className="flex flex-col border-l-[0.5px] border-white/10 pl-8">
-              <span className="text-sm text-dn-text-secondary font-medium mb-2 flex items-center justify-between pr-4">
-                Projetos Ativos
-                <span className="text-[10px] text-dn-accent bg-dn-accent/10 px-2 py-0.5 rounded-full">On time</span>
-              </span>
-              <span className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                <AnimatedCounter value={dashboardData.activeProjectsCount} />
-              </span>
+            <div className="flex justify-between items-stretch border-l-[0.5px] border-white/10 pl-8 group">
+              <div className="flex flex-col justify-between py-0.5">
+                <span className="text-xs md:text-sm text-dn-text-secondary font-medium">
+                  Projetos Ativos
+                </span>
+                <span className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mt-2">
+                  <AnimatedCounter value={dashboardData.activeProjectsCount} />
+                </span>
+              </div>
+              <div className="flex flex-col items-end justify-between pl-4 shrink-0">
+                <span className="text-[10px] font-bold text-dn-accent bg-dn-accent/10 px-2 py-0.5 rounded-full">No prazo</span>
+                <div className="w-10 h-10 rounded-xl bg-dn-accent/10 border border-dn-accent/20 flex items-center justify-center text-dn-accent transition-all duration-300 group-hover:scale-110 shadow-[0_0_15px_rgba(58,191,255,0.15)] group-hover:border-dn-accent/40">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col border-l-[0.5px] border-white/10 pl-8">
-              <span className="text-sm text-dn-text-secondary font-medium mb-2 flex items-center justify-between pr-4">
-                Clientes Base
-                <span className="text-[10px] text-dn-text-muted bg-white/5 px-2 py-0.5 rounded-full">Total</span>
-              </span>
-              <span className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                <AnimatedCounter value={dashboardData.activeClientsCount} />
-              </span>
+            <div className="flex justify-between items-stretch lg:border-l-[0.5px] lg:border-white/10 lg:pl-8 group">
+              <div className="flex flex-col justify-between py-0.5">
+                <span className="text-xs md:text-sm text-dn-text-secondary font-medium">
+                  Base de Clientes
+                </span>
+                <span className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mt-2">
+                  <AnimatedCounter value={dashboardData.activeClientsCount} />
+                </span>
+              </div>
+              <div className="flex flex-col items-end justify-between pl-4 shrink-0">
+                <span className="text-[10px] font-bold text-dn-purple bg-dn-purple/10 px-2 py-0.5 rounded-full">Total</span>
+                <div className="w-10 h-10 rounded-xl bg-dn-purple/10 border border-dn-purple/20 flex items-center justify-center text-dn-purple transition-all duration-300 group-hover:scale-110 shadow-[0_0_15px_rgba(139,92,246,0.15)] group-hover:border-dn-purple/40">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col border-l-[0.5px] border-white/10 pl-8">
-              <span className="text-sm text-dn-text-secondary font-medium mb-2 flex items-center justify-between pr-4">
-                Total A Pagar
-                <span className="text-[10px] text-dn-warning bg-dn-warning/10 px-2 py-0.5 rounded-full">Despesas</span>
-              </span>
-              <span className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                <AnimatedCounter value={dashboardData.payableTotal} formatCurrency={true} />
-              </span>
+            <div className="flex justify-between items-stretch border-l-[0.5px] border-white/10 pl-8 group">
+              <div className="flex flex-col justify-between py-0.5">
+                <span className="text-xs md:text-sm text-dn-text-secondary font-medium">
+                  Total A Pagar
+                </span>
+                <span className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mt-2">
+                  <AnimatedCounter value={dashboardData.payableTotal} formatCurrency={true} />
+                </span>
+              </div>
+              <div className="flex flex-col items-end justify-between pl-4 shrink-0">
+                <span className="text-[10px] font-bold text-dn-warning bg-dn-warning/10 px-2 py-0.5 rounded-full">Despesas</span>
+                <div className="w-10 h-10 rounded-xl bg-dn-warning/10 border border-dn-warning/20 flex items-center justify-center text-dn-warning transition-all duration-300 group-hover:scale-110 shadow-[0_0_15px_rgba(245,158,11,0.15)] group-hover:border-dn-warning/40">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -201,7 +284,7 @@ function AppHomePage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">Performance Financeira</h3>
-                  <p className="text-xs text-dn-accent mt-0.5 font-mono">ÚLTIMOS 6 MESES</p>
+                  <p className="text-xs text-dn-accent mt-0.5 font-mono">HISTORICO FINANCEIRO</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -270,23 +353,8 @@ function AppHomePage() {
               {/* Outer Glow */}
               <div className="absolute inset-0 rounded-full blur-[20px] bg-dn-accent/20"></div>
               
-              <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                {/* Background Ring */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                
-                {/* Colored Progress Ring */}
-                <circle 
-                  cx="50" cy="50" r="40" 
-                  fill="transparent" 
-                  stroke={healthPercentage > 80 ? "#10B981" : healthPercentage > 50 ? "#F59E0B" : "#EF4444"} 
-                  strokeWidth="8" 
-                  strokeDasharray={`${healthPercentage * 2.51} 251.2`} 
-                  strokeLinecap="round" 
-                  className="transition-all duration-1000 ease-out drop-shadow-md"
-                />
-                
-                {/* Secondary decorative ring piece */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3ABFFF" strokeWidth="8" strokeDasharray="20 251.2" strokeDashoffset="-220" strokeLinecap="round" />
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                {ticks}
               </svg>
               
               <div className="absolute inset-0 flex flex-col items-center justify-center">

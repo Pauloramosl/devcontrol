@@ -12,7 +12,6 @@ import {
 import { Input } from '../components/ui/Input.jsx'
 import { Select } from '../components/ui/Select.jsx'
 import { Button } from '../components/ui/Button.jsx'
-import { AudioTranscriptionButton } from '../components/ui/AudioTranscriptionButton.jsx'
 
 const EMPTY_FORM = {
   client_id: '',
@@ -112,17 +111,6 @@ function RecurrenceFormPage() {
       ...current,
       [name]: value,
     }))
-  }
-
-  const handleTranscription = (name, text) => {
-    setFormData((current) => {
-      const existing = current[name] || ''
-      const nextValue = existing ? `${existing} ${text}` : text
-      return {
-        ...current,
-        [name]: nextValue,
-      }
-    })
   }
 
   const handleSubmit = async (event) => {
@@ -302,13 +290,7 @@ function RecurrenceFormPage() {
         </div>
 
         <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-dn-label text-dn-text-muted">OBSERVAÇÕES (OPCIONAL)</label>
-            <AudioTranscriptionButton
-              onTranscription={(text) => handleTranscription('notes', text)}
-              placeholderText="Transcrever observações por voz"
-            />
-          </div>
+          <label className="block text-dn-label text-dn-text-muted mb-2">OBSERVAÇÕES (OPCIONAL)</label>
           <textarea
             name="notes"
             value={formData.notes}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import AppLoadingScreen from '../components/AppLoadingScreen.jsx'
+import DevControlLogo from '../components/DevControlLogo.jsx'
 import DottedSurface from '../components/DottedSurface.jsx'
 import { Input } from '../components/ui/Input.jsx'
 import { Button } from '../components/ui/Button.jsx'
@@ -78,6 +79,12 @@ function LoginPage() {
           <div className="absolute top-0 right-0 w-[200px] h-[200px] rounded-full bg-dn-accent/10 blur-[50px] -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
 
           <div className="relative z-10">
+            <div className="mb-6 flex justify-center">
+              <DevControlLogo
+                className="h-16 w-40"
+                imageClassName="drop-shadow-[0_0_18px_rgba(58,191,255,0.28)]"
+              />
+            </div>
             <h2 className="text-dn-h2 mb-2 text-white">
               Entrar no DevControl
             </h2>

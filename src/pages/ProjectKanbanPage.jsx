@@ -5,10 +5,13 @@ import { useAlerts } from '../context/AlertsContext.jsx'
 import {
   createProjectColumn,
   createTask,
+  createTaskComment,
+  deleteTaskComment,
   deleteProjectColumn,
   listProjectColumns,
   listProjectTaskLogs,
   listProjectTasks,
+  listTaskComments,
   moveTask,
   renameProjectColumn,
   reorderProjectColumns,
@@ -19,7 +22,6 @@ import { Button } from '../components/ui/Button.jsx'
 import { Input } from '../components/ui/Input.jsx'
 import { Badge } from '../components/ui/Badge.jsx'
 import { Select } from '../components/ui/Select.jsx'
-import { AudioTranscriptionButton } from '../components/ui/AudioTranscriptionButton.jsx'
 
 function getDragPayload(event) {
   const raw = event.dataTransfer.getData('text/plain')
@@ -49,6 +51,20 @@ function formatDateTime(value) {
   if (!value) return '-'
   const date = new Date(value)
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+function formatTaskCardDate(value) {
+  if (!value) return ''
+  const rawValue = String(value)
+  const date = new Date(rawValue.includes('T') ? rawValue : `${rawValue}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('pt-BR')
+}
+
+function getTaskCommentCount(task) {
+  const count = Number(task?.comment_count ?? task?.comments_count ?? 0)
+  return Number.isFinite(count) ? count : 0
 }
 
 const EVENT_META = {
@@ -153,6 +169,13 @@ function ProjectKanbanPage() {
   })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [taskComments, setTaskComments] = useState([])
+  const [commentBody, setCommentBody] = useState('')
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [commentSaving, setCommentSaving] = useState(false)
+  const [deletingCommentId, setDeletingCommentId] = useState(null)
+  const [commentPendingDelete, setCommentPendingDelete] = useState(null)
+  const [commentError, setCommentError] = useState('')
   const [logsOpen, setLogsOpen] = useState(false)
 
   const loadKanban = useCallback(async () => {
@@ -186,6 +209,23 @@ function ProjectKanbanPage() {
       setLoading(false)
     }
   }, [ownerId, projectId])
+
+  const loadCommentsForTask = useCallback(async (taskId) => {
+    if (!ownerId || !taskId) return
+
+    setCommentLoading(true)
+    setCommentError('')
+
+    try {
+      const comments = await listTaskComments({ ownerId, taskId })
+      setTaskComments(comments)
+    } catch (loadCommentsError) {
+      setTaskComments([])
+      setCommentError(loadCommentsError.message)
+    } finally {
+      setCommentLoading(false)
+    }
+  }, [ownerId])
 
   // Silent reload: re-fetches data without showing the loading skeleton
   const silentReload = useCallback(async () => {
@@ -317,19 +357,12 @@ function ProjectKanbanPage() {
     }
   }
 
-  const handleTranscription = (text) => {
-    setEditForm((current) => {
-      const existing = current.description || ''
-      const nextValue = existing ? `${existing} ${text}` : text
-      return {
-        ...current,
-        description: nextValue,
-      }
-    })
-  }
-
   const openEditTaskModal = (task) => {
     setEditError('')
+    setCommentError('')
+    setTaskComments([])
+    setCommentBody('')
+    setCommentPendingDelete(null)
     setEditingTask(task)
     setEditForm({
       title: task.title ?? '',
@@ -337,11 +370,16 @@ function ProjectKanbanPage() {
       priority: task.priority ?? '',
       due_date: task.due_date ?? '',
     })
+    loadCommentsForTask(task.id)
   }
 
   const closeEditTaskModal = () => {
     setEditingTask(null)
     setEditError('')
+    setCommentError('')
+    setTaskComments([])
+    setCommentBody('')
+    setCommentPendingDelete(null)
     setEditForm({
       title: '',
       description: '',
@@ -384,6 +422,89 @@ function ProjectKanbanPage() {
       setEditError(saveError.message)
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  const handleCreateComment = async () => {
+    if (!ownerId || !editingTask || !commentBody.trim()) return
+
+    setCommentSaving(true)
+    setCommentError('')
+
+    try {
+      const createdComment = await createTaskComment({
+        ownerId,
+        taskId: editingTask.id,
+        body: commentBody,
+      })
+
+      setTaskComments((current) => [...current, createdComment])
+      setCommentBody('')
+
+      setColumns((currentColumns) =>
+        currentColumns.map((column) => ({
+          ...column,
+          tasks: column.tasks.map((task) =>
+            task.id === editingTask.id
+              ? { ...task, comment_count: getTaskCommentCount(task) + 1 }
+              : task,
+          ),
+        })),
+      )
+
+      setEditingTask((currentTask) =>
+        currentTask
+          ? { ...currentTask, comment_count: getTaskCommentCount(currentTask) + 1 }
+          : currentTask,
+      )
+    } catch (createCommentError) {
+      setCommentError(createCommentError.message)
+    } finally {
+      setCommentSaving(false)
+    }
+  }
+
+  const handleDeleteComment = (comment) => {
+    if (!ownerId || !editingTask || !comment?.id) return
+    setCommentPendingDelete(comment)
+  }
+
+  const handleConfirmDeleteComment = async () => {
+    if (!ownerId || !editingTask || !commentPendingDelete?.id) return
+
+    const comment = commentPendingDelete
+    setDeletingCommentId(comment.id)
+    setCommentError('')
+
+    try {
+      await deleteTaskComment({
+        ownerId,
+        commentId: comment.id,
+      })
+
+      setTaskComments((current) => current.filter((item) => item.id !== comment.id))
+
+      setColumns((currentColumns) =>
+        currentColumns.map((column) => ({
+          ...column,
+          tasks: column.tasks.map((task) =>
+            task.id === editingTask.id
+              ? { ...task, comment_count: Math.max(0, getTaskCommentCount(task) - 1) }
+              : task,
+          ),
+        })),
+      )
+
+      setEditingTask((currentTask) =>
+        currentTask
+          ? { ...currentTask, comment_count: Math.max(0, getTaskCommentCount(currentTask) - 1) }
+          : currentTask,
+      )
+      setCommentPendingDelete(null)
+    } catch (deleteCommentError) {
+      setCommentError(deleteCommentError.message)
+    } finally {
+      setDeletingCommentId(null)
     }
   }
 
@@ -642,7 +763,10 @@ function ProjectKanbanPage() {
                     Solte tarefas aqui.
                   </div>
                 ) : (
-                  column.tasks.map((task) => (
+                  column.tasks.map((task) => {
+                    const commentCount = getTaskCommentCount(task)
+
+                    return (
                     <div
                       key={task.id}
                       id={`task-card-${task.id}`}
@@ -680,22 +804,37 @@ function ProjectKanbanPage() {
                          )}
                       </div>
                       
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[10px] text-dn-text-secondary font-mono flex items-center gap-1">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                          {task.due_date ? task.due_date.substring(5) : 'Sem data'}
-                        </span>
-                        
-                        <button
-                          type="button"
-                          onClick={() => openEditTaskModal(task)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-dn-accent font-semibold px-2 py-1 bg-dn-accent/10 rounded-md"
-                        >
-                          Abrir
-                        </button>
+                      <div className="mt-1 space-y-2 border-t-[0.5px] border-dn-border/50 pt-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 text-[10px] text-dn-text-secondary font-mono flex items-center gap-1.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="w-3.5 h-3.5 shrink-0 text-dn-accent"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <span className="truncate">{task.due_date ? `Entrega: ${formatTaskCardDate(task.due_date)}` : 'Sem entrega'}</span>
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => openEditTaskModal(task)}
+                            className="shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-dn-accent font-semibold px-2 py-1 bg-dn-accent/10 rounded-md"
+                          >
+                            Abrir
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-dn-text-muted font-mono">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-dn-border bg-white/[0.03] px-2 py-1 text-dn-text-secondary" title="Comentários">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-3.5 w-3.5 text-dn-accent"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6A8.4 8.4 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z"></path></svg>
+                            {commentCount > 0 ? <span className="font-semibold text-white">{commentCount}</span> : null}
+                          </span>
+
+                          <span className="min-w-0 inline-flex items-center gap-1.5 text-right" title="Data de criação">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 shrink-0 text-dn-text-secondary"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                            <span className="truncate">{task.created_at ? `Criada: ${formatTaskCardDate(task.created_at)}` : 'Criada: -'}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ))
+                    )
+                  })
                 )}
 
                 {/* ADD TASK FORM INLINE */}
@@ -835,7 +974,7 @@ function ProjectKanbanPage() {
       {/* MODAL EDITAR TASK */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-xl rounded-[24px] bg-dn-bg-card border-[0.5px] border-dn-border p-8 shadow-2xl relative overflow-hidden">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[24px] bg-dn-bg-card border-[0.5px] border-dn-border p-8 shadow-2xl relative">
             {/* Modal header accent */}
             <div className="absolute top-0 left-0 w-full h-1 bg-dn-accent"></div>
             
@@ -861,13 +1000,7 @@ function ProjectKanbanPage() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-dn-label text-dn-text-muted">DESCRIÇÃO</label>
-                  <AudioTranscriptionButton
-                    onTranscription={handleTranscription}
-                    placeholderText="Transcrever descrição por voz"
-                  />
-                </div>
+                <label className="block text-dn-label text-dn-text-muted mb-2">DESCRIÇÃO</label>
                 <textarea
                   value={editForm.description}
                   onChange={(event) =>
@@ -915,6 +1048,89 @@ function ProjectKanbanPage() {
                 </div>
               </div>
 
+              <section className="rounded-2xl border-[0.5px] border-dn-border bg-dn-bg-elevated/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border-[0.5px] border-dn-border bg-white/[0.03] text-dn-accent">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6A8.4 8.4 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z"></path></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Comentários</h4>
+                      <p className="text-[11px] text-dn-text-muted">
+                        {taskComments.length === 1 ? '1 comentário' : `${taskComments.length} comentários`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 max-h-36 space-y-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-dn-border scrollbar-track-transparent">
+                  {commentLoading ? (
+                    <p className="rounded-xl border-[0.5px] border-dn-border bg-dn-bg-card/50 px-3 py-2 text-xs text-dn-text-muted">
+                      Carregando comentários...
+                    </p>
+                  ) : taskComments.length === 0 ? (
+                    <p className="rounded-xl border-[0.5px] border-dashed border-dn-border bg-dn-bg-card/30 px-3 py-2 text-xs text-dn-text-muted">
+                      Nenhum comentário ainda.
+                    </p>
+                  ) : (
+                    taskComments.map((comment) => (
+                      <div key={comment.id} className="group/comment rounded-xl border-[0.5px] border-dn-border bg-dn-bg-card/70 px-3 py-2">
+                        <div className="flex items-start gap-3">
+                          <p className="min-w-0 flex-1 break-words text-xs leading-relaxed text-white">{comment.body}</p>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(comment)}
+                            disabled={deletingCommentId === comment.id}
+                            title="Apagar comentário"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[0.5px] border-dn-border bg-white/[0.03] text-dn-text-muted opacity-100 transition-all hover:border-dn-danger/50 hover:bg-dn-danger/10 hover:text-dn-danger disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover/comment:opacity-100"
+                          >
+                            {deletingCommentId === comment.id ? (
+                              <span className="h-3 w-3 animate-spin rounded-full border border-dn-danger/30 border-t-dn-danger" />
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                            )}
+                          </button>
+                        </div>
+                        <span className="mt-2 block text-[10px] font-mono text-dn-text-muted">
+                          {formatDateTime(comment.created_at)}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <Input
+                    type="text"
+                    value={commentBody}
+                    onChange={(event) => setCommentBody(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        handleCreateComment()
+                      }
+                    }}
+                    placeholder="Adicionar comentário..."
+                    disabled={commentSaving}
+                    className="h-10 flex-1 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleCreateComment}
+                    disabled={commentSaving || !commentBody.trim()}
+                    className="h-10 px-3 text-xs"
+                  >
+                    {commentSaving ? '...' : 'Enviar'}
+                  </Button>
+                </div>
+
+                {commentError ? (
+                  <p className="mt-3 rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-3 py-2 text-xs text-dn-danger">
+                    {commentError}
+                  </p>
+                ) : null}
+              </section>
+
               {editError && (
                 <p className="rounded-dn-md border-[0.5px] border-dn-danger/50 bg-[#161B26] px-4 py-3 text-dn-body text-dn-danger">
                   {editError}
@@ -939,6 +1155,58 @@ function ProjectKanbanPage() {
               </div>
             </form>
           </div>
+
+          {commentPendingDelete ? (
+            <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+              <div className="w-full max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-dn-border bg-dn-bg-card shadow-2xl">
+                <div className="h-1 w-full bg-gradient-to-r from-dn-danger via-dn-danger/70 to-transparent"></div>
+
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[0.5px] border-dn-danger/30 bg-dn-danger/10 text-dn-danger">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-lg font-semibold text-white">Apagar comentário?</h4>
+                      <p className="mt-1 text-sm leading-relaxed text-dn-text-secondary">
+                        Esse comentário será removido desta tarefa.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border-[0.5px] border-dn-border bg-dn-bg-elevated/60 px-4 py-3">
+                    <p className="line-clamp-3 break-words text-sm leading-relaxed text-dn-text-primary">
+                      {commentPendingDelete.body}
+                    </p>
+                    <span className="mt-2 block text-[10px] font-mono text-dn-text-muted">
+                      {formatDateTime(commentPendingDelete.created_at)}
+                    </span>
+                  </div>
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setCommentPendingDelete(null)}
+                      disabled={deletingCommentId === commentPendingDelete.id}
+                      className="w-full sm:w-auto"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleConfirmDeleteComment}
+                      disabled={deletingCommentId === commentPendingDelete.id}
+                      className="w-full bg-dn-danger text-white hover:bg-dn-danger/90 sm:w-auto"
+                    >
+                      {deletingCommentId === commentPendingDelete.id ? 'APAGANDO...' : 'APAGAR'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </section>

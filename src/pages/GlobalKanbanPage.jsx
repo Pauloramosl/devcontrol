@@ -90,6 +90,20 @@ function formatProjectTitle(project) {
   return project.service_type ?? 'Projeto sem tipo'
 }
 
+function formatTaskCardDate(value) {
+  if (!value) return ''
+  const rawValue = String(value)
+  const date = new Date(rawValue.includes('T') ? rawValue : `${rawValue}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('pt-BR')
+}
+
+function getTaskCommentCount(task) {
+  const count = Number(task?.comment_count ?? task?.comments_count ?? 0)
+  return Number.isFinite(count) ? count : 0
+}
+
 function getPriorityBadgeVariant(priority) {
   if (priority === 'high') return 'danger';
   if (priority === 'medium') return 'warning';
@@ -563,7 +577,10 @@ function GlobalKanbanPage() {
                             Solte as tarefas aqui
                           </div>
                         ) : (
-                          column.tasks.map((task) => (
+                          column.tasks.map((task) => {
+                            const commentCount = getTaskCommentCount(task)
+
+                            return (
                             <div
                               key={task.id}
                               draggable
@@ -606,12 +623,30 @@ function GlobalKanbanPage() {
                                 <p className="mb-3 line-clamp-2 text-dn-caption text-dn-text-secondary leading-relaxed">{task.description}</p>
                               ) : null}
 
-                              <div className="flex items-center justify-between text-[10px] text-dn-text-muted font-mono uppercase mt-auto pt-2 border-t-[0.5px] border-dn-border/50">
-                                <span>{task.due_date ? `PRAZO: ${task.due_date}` : 'SEM PRAZO'}</span>
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">☰</span>
+                              <div className="mt-auto space-y-2 border-t-[0.5px] border-dn-border/50 pt-2 text-[10px] text-dn-text-muted font-mono">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="min-w-0 inline-flex items-center gap-1.5 text-dn-text-secondary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 shrink-0 text-dn-accent"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    <span className="truncate">{task.due_date ? `Entrega: ${formatTaskCardDate(task.due_date)}` : 'Sem entrega'}</span>
+                                  </span>
+                                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">☰</span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-dn-border bg-white/[0.03] px-2 py-1 text-dn-text-secondary" title="Comentários">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-3.5 w-3.5 text-dn-accent"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6A8.4 8.4 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z"></path></svg>
+                                    {commentCount > 0 ? <span className="font-semibold text-white">{commentCount}</span> : null}
+                                  </span>
+
+                                  <span className="min-w-0 inline-flex items-center gap-1.5 text-right" title="Data de criação">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 shrink-0 text-dn-text-secondary"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                                    <span className="truncate">{task.created_at ? `Criada: ${formatTaskCardDate(task.created_at)}` : 'Criada: -'}</span>
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     </div>

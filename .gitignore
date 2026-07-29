@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env.local
+storage/baileys-auth
+*.session
 
 # Editor directories and files
 .vscode/*

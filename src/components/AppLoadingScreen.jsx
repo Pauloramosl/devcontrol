@@ -1,18 +1,20 @@
 import React from "react";
+import DevControlLogo from "./DevControlLogo.jsx";
 
-function AppLoadingScreen({ size = 180, text = "DC" }) {
-  const letters = text.split("");
-
+function AppLoadingScreen({ size = 180 }) {
   return (
     <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#0a1220]">
 
       <div
-        className="relative flex items-center justify-center font-inter select-none mb-10 z-10 text-dn-accent font-bold"
-        style={{ width: size, height: size, fontSize: size * 0.16 }}
+        className="relative flex items-center justify-center select-none mb-10 z-10 text-dn-accent font-bold"
+        style={{ width: size, height: size }}
       >
         <span className="inline-block animate-bracketLeft text-dn-accent-strong">[</span>
-        <div className="inline-block animate-spinCenter mx-1 text-white">
-          DC
+        <div className="inline-flex h-[42%] w-[74%] animate-spinCenter mx-1">
+          <DevControlLogo
+            className="h-full w-full"
+            imageClassName="drop-shadow-[0_0_18px_rgba(58,191,255,0.4)]"
+          />
         </div>
         <span className="inline-block animate-bracketRight text-dn-accent-strong">]</span>
 

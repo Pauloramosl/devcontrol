@@ -453,3 +453,129 @@ Nota: o badge agora atualiza automaticamente ao trocar de rota, focar a aba e ap
 - Layout split-screen (hero/branding + painel de autenticacao).
 - Paleta azul + preto, sem violeta.
 - Animacoes sutis e hero visual de fluxo implementados.
+
+## Integracao WhatsApp com Baileys
+
+Foi adicionada uma integracao MVP do WhatsApp ao CRM usando Baileys, com backend Node/Express, persistencia no Supabase e tela interna em `/app/whatsapp`.
+
+### Arquitetura
+
+- Frontend React chama apenas rotas `/api/whatsapp/*`.
+- Backend usa `WhatsAppProvider` como contrato abstrato.
+- Implementacao atual: `BaileysWhatsAppProvider`.
+- Baileys fica restrito ao backend, nunca nos componentes React.
+- A sessao local fica em `storage/baileys-auth`, caminho ignorado pelo git.
+- Atualizacao da tela usa polling simples, preparado para trocar por Supabase Realtime ou WebSocket depois.
+
+### Dependencias
+
+As dependencias principais sao:
+
+- `@whiskeysockets/baileys`
+- `qrcode`
+- `pino`
+- `dotenv`
+- `express`
+- `cors`
+- `concurrently` para rodar frontend e API juntos em desenvolvimento
+
+### Variaveis de ambiente
+
+Use `.env.example` como base. Para o frontend:
+
+```bash
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_URL=
+```
+
+Para o backend:
+
+```bash
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+WHATSAPP_PROVIDER=baileys
+BAILEYS_AUTH_DIR=./storage/baileys-auth
+PORT=3001
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` deve existir somente no backend/local server. Nao exponha essa chave em variaveis `VITE_*`.
+
+### Banco de dados
+
+A migration `supabase/migrations/20260611000000_whatsapp_baileys.sql` cria:
+
+- `whatsapp_sessions`
+- `whatsapp_conversations`
+- `whatsapp_messages`
+
+Todas usam `owner_id`, RLS e policies por usuario autenticado. Para aplicar:
+
+```bash
+npx supabase db push
+```
+
+### Rodar em desenvolvimento
+
+Depois de configurar `.env.local` com as variaveis do frontend e backend:
+
+```bash
+npm install
+npm run dev
+```
+
+Tambem e possivel rodar separado:
+
+```bash
+npm run dev:client
+npm run dev:api
+```
+
+O Vite faz proxy de `/api` para `http://localhost:3001`.
+
+### Como conectar
+
+1. Faca login no CRM.
+2. Acesse `/app/whatsapp`.
+3. Clique em `Conectar WhatsApp`.
+4. Escaneie o QR Code exibido na tela.
+5. Aguarde o status mudar para `Conectado`.
+
+### Como testar mensagens
+
+1. Com o status conectado, envie uma mensagem para o numero conectado usando outro WhatsApp.
+2. A conversa deve aparecer na lista da esquerda.
+3. Abra a conversa, digite uma resposta e clique em `Enviar`.
+4. Confira no Supabase se `whatsapp_conversations` e `whatsapp_messages` foram atualizadas.
+5. Reinicie `npm run dev:api`; se ja houver sessao salva, o backend tenta reconectar automaticamente.
+
+### Rotas da API
+
+- `GET /api/whatsapp/status`
+- `POST /api/whatsapp/connect`
+- `POST /api/whatsapp/disconnect`
+- `GET /api/whatsapp/qr`
+- `GET /api/whatsapp/conversations`
+- `GET /api/whatsapp/conversations/:id`
+- `GET /api/whatsapp/conversations/:id/messages`
+- `POST /api/whatsapp/send-message`
+
+Payload de envio:
+
+```json
+{
+  "conversationId": "id-da-conversa",
+  "to": "5571999999999",
+  "message": "Ola, tudo bem?"
+}
+```
+
+### Limitacoes importantes
+
+- Baileys nao e API oficial do WhatsApp.
+- A sessao pode desconectar e exigir novo QR Code.
+- Automacoes agressivas podem causar bloqueio da conta.
+- Nao use esta integracao para disparos em massa.
+- Para uso comercial robusto, o caminho recomendado e migrar para a API oficial do WhatsApp Business / Cloud API criando um futuro `OfficialWhatsAppProvider`.

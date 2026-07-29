@@ -46,8 +46,14 @@ function AlertsPage() {
     setError('')
 
     try {
-      const alerts = await loadAlerts({ ownerId })
-      setData(alerts)
+      const [alerts, overdueTasks] = await Promise.all([
+        loadAlerts({ ownerId }),
+        import('../lib/kanban.js').then((m) => m.loadOverdueTasks({ ownerId })).catch(() => [])
+      ])
+      setData({
+        ...alerts,
+        overdueTasks: overdueTasks || []
+      })
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -61,7 +67,7 @@ function AlertsPage() {
 
   const upcomingItems = useMemo(() => {
     const items = [
-      ...data.upcomingInvoices.map((invoice) => ({
+      ...(data.upcomingInvoices || []).map((invoice) => ({
         id: `invoice-${invoice.id}`,
         type: 'Cobrança',
         title: `Invoice ${invoice.reference_month ?? ''}`.trim(),
@@ -70,7 +76,7 @@ function AlertsPage() {
         date: invoice.due_date,
         link: '/app/finance/invoices',
       })),
-      ...data.upcomingExpenses.map((expense) => ({
+      ...(data.upcomingExpenses || []).map((expense) => ({
         id: `expense-${expense.id}`,
         type: 'Despesa',
         title: expense.description,
@@ -81,13 +87,14 @@ function AlertsPage() {
       })),
     ]
 
-    return items.sort((left, right) => left.date.localeCompare(right.date))
+    return items.sort((left, right) => (left.date || '').localeCompare(right.date || ''))
   }, [data.upcomingExpenses, data.upcomingInvoices])
 
   const hasAlerts =
-    data.overdueInvoices.length ||
-    data.overdueExpenses.length ||
-    upcomingItems.length
+    (data.overdueInvoices?.length ?? 0) > 0 ||
+    (data.overdueExpenses?.length ?? 0) > 0 ||
+    (data.overdueTasks?.length ?? 0) > 0 ||
+    (upcomingItems?.length ?? 0) > 0
 
   return (
     <section className="space-y-6">
